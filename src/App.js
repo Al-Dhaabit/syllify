@@ -704,7 +704,7 @@ function App() {
               <li>
                 <b>When looking for the least amount of quizzes:</b>
                 <br />
-                By simply typing "low quizzes", "few quizzes", or what is similar, Syllify will show you courses with three quizzes or less only; you can also combine it with other tags like "ethical perspective".
+                By simply typing "low quizzes", "few quizzes", or what is similar, Syllify will show you courses with two quizzes or less only; you can also combine it with other tags like "ethical perspective".
               </li>
             </ul>
             <button className="search-btn" onClick={handleCloseTips}>
