@@ -156,6 +156,7 @@
       "workplace",
       "presentation",
       "CO-OP",
+      "no final",
       "low quizzes"
     ]
   },
@@ -184,6 +185,7 @@
       "static analysis",
       "dynamic analysis",
       "malware",
+      "no final",
       "low quizzes"
     ]
   },
@@ -1394,6 +1396,7 @@
       "project",
       "cybersecurity",
       "advanced elective",
+      "no final",
       "low quizzes"
     ]
   },
