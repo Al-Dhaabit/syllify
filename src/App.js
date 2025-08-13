@@ -15,6 +15,7 @@ const TAG_SYNONYMS = {
   "no final": [
     "with no final exam",
     "no finals",
+    "no final exam",
     "no final exams",
     "without final",
     "without finals",

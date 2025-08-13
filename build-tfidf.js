@@ -108,7 +108,7 @@ const courses = [
   code: "CSEC99",
   title: "Cooperative Education Seminar",
   summary: "Prepares students for the job search and professional experience in engineering fields. Covers strategies for job applications, resume and cover letter writing, behavioral interviewing, and effective use of social media. Emphasizes professional and ethical responsibilities, workplace skills, and creative problem solving through design thinking. Coursework includes assignments on CVs, LinkedIn profiles, interviews, ethics, and a group case study.\n---\nGrading: S/F based on points: 25% CV, 20% LinkedIn profile, 20% interview, 20% case study (group), 15% ethics assignment.",
-  tags: ["career", "networking", "design thinking", "workplace", "presentation", "CO-OP"]
+  tags: ["career", "networking", "design thinking", "workplace", "presentation", "CO-OP", "no final"]
 },
 {
   id: 15,
@@ -122,7 +122,7 @@ const courses = [
   code: "CSEC202",
   title: "Reverse Engineering Fundamentals",
   summary: "Introduces core concepts and tools for analyzing unknown source code and binaries. Covers low-level programming languages, the relationship between high-level and low-level code, and techniques for static and dynamic analysis. Students use debuggers, perform code tracing, and complete practical assignments and projects to build foundational skills for further study in malware analysis.\n---\nGrading: 40% homework assignments (4), 20% midterm exam, 30% project, 10% quizzes (2).",
-  tags: ["debugging", "binary analysis", "static analysis", "dynamic analysis", "malware"]
+  tags: ["debugging", "binary analysis", "static analysis", "dynamic analysis", "malware", "no final"]
 },
 {
   id: 17,
@@ -731,7 +731,7 @@ const courses = [
   code: "CSEC471",
   title: "Penetration Testing Frameworks & Methodologies",
   summary: "Covers the process and methodologies of penetration testing, including contract negotiation, test planning, execution, and reporting. Students learn tools and techniques for penetration testing, develop security metrics, and create comprehensive reports. Emphasizes ethical issues and the value of penetration testing to organizations. Assessment includes labs, quizzes, a project report, a midterm exam, and a project presentation.\n---\nGrading: 30% labs (6), 10% quizzes (2), 20% project report, 30% midterm, 10% project presentation.",
-  tags: ["penetration testing", "security", "metrics", "project", "cybersecurity", "advanced elective"]
+  tags: ["penetration testing", "security", "metrics", "project", "cybersecurity", "advanced elective", "no final"]
 },
 {
   id: 104,
