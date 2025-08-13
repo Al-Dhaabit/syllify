@@ -116,37 +116,37 @@ const TAG_SYNONYMS = {
     "talk",
     "speech"
   ],
-  "artistic perspective": [
-    "art",
-    "creative",
-    "artistic",
-    "visual arts",
-    "performing arts",
-    "aesthetic perspective"
-  ],
-  "ethical perspective": [
-    "ethics",
-    "morality",
-    "moral perspective",
-    "ethical",
-    "values",
-    "principles"
-  ],
-  "social perspective": [
-    "society",
-    "social",
-    "community",
-    "sociology",
-    "social view"
-  ],
-  "global perspective": [
-    "international",
-    "worldwide",
-    "global",
-    "cross-cultural",
-    "global view",
-    "international perspective"
-  ],
+  // "artistic perspective": [
+  //   "art",
+  //   "creative",
+  //   "artistic",
+  //   "visual arts",
+  //   "performing arts",
+  //   "aesthetic perspective"
+  // ],
+  // "ethical perspective": [
+  //   "ethics",
+  //   "morality",
+  //   "moral perspective",
+  //   "ethical",
+  //   "values",
+  //   "principles"
+  // ],
+  // "social perspective": [
+  //   "society",
+  //   "social",
+  //   "community",
+  //   "sociology",
+  //   "social view"
+  // ],
+  // "global perspective": [
+  //   "international",
+  //   "worldwide",
+  //   "global",
+  //   "cross-cultural",
+  //   "global view",
+  //   "international perspective"
+  // ],
   "writing intensive": [
     "writing heavy",
     "lots of writing",
