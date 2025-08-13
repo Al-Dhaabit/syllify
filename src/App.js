@@ -12,7 +12,36 @@ import {
 
 // --- IMPROVEMENT: Tag synonyms for fuzzy matching
 const TAG_SYNONYMS = {
-  "no midterm": ["no midterms", "without midterm", "without midterms"],
+  "no final": [
+    "with no final exam",
+    "no finals",
+    "no final exams",
+    "without final",
+    "without finals",
+    "without final exam",
+    "without final exams",
+    "no final test",
+    "no final tests",
+    "without final test",
+    "without final tests",
+    "no end exam",
+    "no end exams",
+    "without end exam",
+    "without end exams"
+  ],
+  "no midterm": [
+    "no midterms",
+    "no midterm exam",
+    "no midterm exams",
+    "without midterm",
+    "without midterms",
+    "without midterm exam",
+    "without midterm exams",
+    "no midterm test",
+    "no midterm tests",
+    "without midterm test",
+    "without midterm tests"
+  ],
   "low quizzes": [
     "no quiz",
     "no quizzes",
@@ -32,22 +61,104 @@ const TAG_SYNONYMS = {
     "as little quizzes as possible",
     "quiz with the fewest",
     "quiz having no",
+    "only one quiz",
+    "just one quiz",
+    "single quiz"
   ],
-  "no exam": [
-    "no exams",
-    "without exam",
-    "without exams",
-    "no test",
-    "no tests",
-    "without test",
-    "without tests",
+  "final project": [
+    "project",
+    "capstone",
+    "final assignment",
+    "end project",
+    "end assignment",
+    "major project",
+    "term project"
   ],
-  "final project": ["project", "capstone", "final assignment"],
-  "group project": ["team project", "collaborative project"],
-  science: ["scientific", "biology", "chemistry", "physics"],
-  policy: ["policies", "regulation", "regulations"],
-  hacker: ["hacking", "cybersecurity", "security"],
-  presentation: ["presenting", "oral presentation", "presentations"],
+  "group project": [
+    "team project",
+    "collaborative project",
+    "group assignment",
+    "team assignment",
+    "collaboration project",
+    "joint project"
+  ],
+  science: [
+    "scientific",
+    "biology",
+    "chemistry",
+    "physics",
+    "natural science",
+    "life science",
+    "physical science"
+  ],
+  policy: [
+    "policies",
+    "regulation",
+    "regulations",
+    "rules",
+    "guidelines",
+    "policy making"
+  ],
+  hacker: [
+    "hacking",
+    "cybersecurity",
+    "security",
+    "ethical hacking",
+    "penetration testing",
+    "pentesting"
+  ],
+  presentation: [
+    "presenting",
+    "oral presentation",
+    "presentations",
+    "slideshow",
+    "pitch",
+    "talk",
+    "speech"
+  ],
+  "artistic perspective": [
+    "art",
+    "creative",
+    "artistic",
+    "visual arts",
+    "performing arts",
+    "aesthetic perspective"
+  ],
+  "ethical perspective": [
+    "ethics",
+    "morality",
+    "moral perspective",
+    "ethical",
+    "values",
+    "principles"
+  ],
+  "social perspective": [
+    "society",
+    "social",
+    "community",
+    "sociology",
+    "social view"
+  ],
+  "global perspective": [
+    "international",
+    "worldwide",
+    "global",
+    "cross-cultural",
+    "global view",
+    "international perspective"
+  ],
+  "writing intensive": [
+    "writing heavy",
+    "lots of writing",
+    "essay heavy",
+    "writing focused",
+    "writing based"
+  ],
+  "advanced elective": [
+    "upper level elective",
+    "advanced course",
+    "specialized elective"
+  ]
 };
 
 const STOP_WORDS = new Set([
@@ -92,7 +203,6 @@ const STOP_WORDS = new Set([
   "does",
   "did",
   "not",
-  "no",
   "yes",
   "you",
   "your",
@@ -230,7 +340,6 @@ function levenshtein(a, b) {
   return matrix[a.length][b.length];
 }
 
-// Detect if query is a course code (skip spell check for these)
 function isCourseCodeQuery(query) {
   const codePattern = /^[A-Z]{2,5}\s?\d{0,4}$/i;
   return codePattern.test(query.trim());
@@ -334,15 +443,11 @@ function App() {
 
     const correctedWords = words.map((word) => {
       const lowerWord = word.toLowerCase();
-
-      // ✅ Skip spell check for course codes inside multi-word queries
       if (STOP_WORDS.has(lowerWord) || /^[0-9]+$/.test(lowerWord) || isCourseCodeQuery(word)) {
         return word;
       }
-
       let bestMatch = lowerWord;
       let bestDistance = Infinity;
-
       dictionary.forEach((dictWord) => {
         if (!dictWord || dictWord.length < 2) return;
         const dist = levenshtein(lowerWord, dictWord);
@@ -351,12 +456,10 @@ function App() {
           bestMatch = dictWord;
         }
       });
-
       if (bestDistance <= 2 && bestMatch !== lowerWord) {
         changed = true;
         return bestMatch;
       }
-
       return word;
     });
 
@@ -366,7 +469,6 @@ function App() {
 
   const doSearch = (overrideQuery) => {
     setDidYouMean("");
-
     let searchTerm = (overrideQuery ?? query).trim();
     if (!searchTerm) {
       setQuery("");
@@ -374,10 +476,8 @@ function App() {
       setHasSearched(false);
       return;
     }
-
     const queryLower = searchTerm.toLowerCase();
     setHasSearched(true);
-
     saveSearchHistory(searchTerm);
 
     if (RESERVED_COMMANDS.has(queryLower) || isCourseCodeQuery(searchTerm)) {
@@ -396,16 +496,13 @@ function App() {
     }
 
     const codeQuery = searchTerm.replace(/\s+/g, "").toUpperCase();
-
     const exactMatch = courses.find(
-      (course) =>
-        course.code.replace(/\s+/g, "").toUpperCase() === codeQuery
+      (course) => course.code.replace(/\s+/g, "").toUpperCase() === codeQuery
     );
     if (exactMatch) {
       setResults([exactMatch]);
       return;
     }
-
     if (/^[A-Z]{2,6}$/.test(codeQuery)) {
       const prefixMatches = courses.filter((course) =>
         course.code.toUpperCase().startsWith(codeQuery)
@@ -418,28 +515,27 @@ function App() {
 
     let requiredTags = [];
     let queryForKeywords = queryLower;
-    const sortedTags = [...ALL_TAGS].sort((a, b) => b.length - a.length);
 
-    sortedTags.forEach((tag) => {
-      const tagRegex = new RegExp(
-        `\\b${tag.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}\\b`,
+    // ✅ Build combined tag+synonym list sorted by length
+    const tagPatterns = [];
+    ALL_TAGS.forEach((tag) => {
+      tagPatterns.push({ tag, pattern: tag });
+      if (TAG_SYNONYMS[tag]) {
+        TAG_SYNONYMS[tag].forEach((syn) => {
+          tagPatterns.push({ tag, pattern: syn });
+        });
+      }
+    });
+    tagPatterns.sort((a, b) => b.pattern.length - a.pattern.length);
+
+    tagPatterns.forEach(({ tag, pattern }) => {
+      const regex = new RegExp(
+        `\\b${pattern.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}\\b`,
         "gi"
       );
-      if (tagRegex.test(queryForKeywords)) {
+      if (regex.test(queryForKeywords)) {
         requiredTags.push(tag);
-        queryForKeywords = queryForKeywords.replace(tagRegex, "");
-      }
-      if (TAG_SYNONYMS[tag]) {
-        TAG_SYNONYMS[tag].forEach((synonym) => {
-          const synRegex = new RegExp(
-            `\\b${synonym.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}\\b`,
-            "gi"
-          );
-          if (synRegex.test(queryForKeywords)) {
-            requiredTags.push(tag);
-            queryForKeywords = queryForKeywords.replace(synRegex, "");
-          }
-        });
+        queryForKeywords = queryForKeywords.replace(regex, "");
       }
     });
 
@@ -457,21 +553,18 @@ function App() {
     );
 
     let filteredCourses = courses;
-
     if (requiredTags.length > 0) {
       filteredCourses = filteredCourses.filter((course) => {
         if (!course.tags) return false;
         for (const requiredTag of requiredTags) {
           let tagFound = false;
           const normalizedRequiredTag = normalizeTag(requiredTag);
-
           for (const courseTag of course.tags) {
             if (normalizeTag(courseTag) === normalizedRequiredTag) {
               tagFound = true;
               break;
             }
           }
-
           if (!tagFound && TAG_SYNONYMS[requiredTag]) {
             for (const synonym of TAG_SYNONYMS[requiredTag]) {
               const normalizedSynonym = normalizeTag(synonym);
@@ -484,14 +577,12 @@ function App() {
               if (tagFound) break;
             }
           }
-
           if (!tagFound) {
             return false;
           }
         }
         return true;
       });
-
       if (requiredTags.includes("low quizzes")) {
         filteredCourses = filteredCourses
           .map((course) => ({
@@ -505,27 +596,21 @@ function App() {
     if (featureKeywords.length > 0 || codeKeywords.length > 0) {
       let scoredCourses = filteredCourses.map((course) => {
         let score = 0;
-
         featureKeywords.forEach((kw) => {
           if (tokenize(course.title).includes(kw)) score += 2;
           if (tokenize(course.summary).includes(kw)) score += 1;
         });
-
         codeKeywords.forEach((codeFrag) => {
           if (stemCode(course.code) === codeFrag) score += 4;
           else if (stemCode(course.code).startsWith(codeFrag)) score += 2;
         });
-
         if (course.title.toLowerCase().includes(queryLower)) score += 4;
         if (course.summary.toLowerCase().includes(queryLower)) score += 2;
-
         return { ...course, score };
       });
-
       scoredCourses = scoredCourses
         .filter((c) => c.score > 0)
         .sort((a, b) => b.score - a.score);
-
       setResults(scoredCourses);
       return;
     }
@@ -538,21 +623,17 @@ function App() {
     const queryTokensArr = tokenize(searchTerm);
     const queryTf = fuzzyTermFrequency(queryTokensArr, tfidfData.vocab);
     const queryVec = tfidfVector(queryTf, tfidfData.idf);
-
     const ranked = courses
       .map((course, i) => ({
         ...course,
         score: cosineSimilarity(queryVec, tfidfData.courseVectors[i]),
       }))
       .sort((a, b) => b.score - a.score);
-
     const maxScore = ranked.length > 0 ? ranked[0].score : 0;
     const threshold = 0.2;
-
     const filtered = ranked.filter(
       (c) => c.score > 0 && c.score >= threshold * maxScore
     );
-
     setResults(filtered.length ? filtered : []);
   };
 
@@ -617,7 +698,7 @@ function App() {
               <li>
                 <b>Combine keywords:</b>
                 <br />
-                For example, "I want a course with <b>no final exam </b> and is
+                For example, "I want a course with <b>no final</b> and is
                 an <b>artisitic perspective.</b>"
               </li>
               <li>
