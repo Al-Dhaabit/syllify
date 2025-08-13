@@ -1005,3 +1005,9 @@ main,
     transform: translateY(0);
   }
 }
+/* ===== Prevent iOS Safari zoom on input focus ===== */
+@supports (-webkit-touch-callout: none) {
+  .search-input {
+    font-size: 16px !important; /* iOS minimum to avoid zoom */
+  }
+}
