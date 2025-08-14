@@ -1414,5 +1414,138 @@
       "ethical perspective",
       "low quizzes"
     ]
+  },
+  {
+    "id": 105,
+    "code": "COMM253",
+    "title": "Communication",
+    "summary": "Introduces communication contexts and processes with emphasis on both conceptual and practical dimensions. Students engage in public speaking, small group problem solving, leadership, and professional writing exercises while acquiring theoretical background to understand these skills. Topics include informative and persuasive speaking, small group decision-making, conflict management, professional writing (memos, reports, agendas, minutes, executive overviews), nonverbal and intercultural communication, and use of presentation software. Tailored for business students with a focus on professional communication, collaboration, and leadership.\n---\nGrading: 10% project, 10% homeworks (5), 30% quizzes (3), 20% midterm exam, 30% final exam.",
+    "tags": [
+      "communication",
+      "public speaking",
+      "professional writing",
+      "teamwork",
+      "business communication",
+      "writing intensive"
+    ]
+  },
+  {
+    "id": 106,
+    "code": "FDTN111",
+    "title": "Drawing I",
+    "summary": "An introduction to the visualization of form, thought, and expression through drawing. First of two sequential foundation courses in the drawing curriculum for Art and Design. Students explore a wide range of media, tools, techniques, and subjects to develop observational skills, creative expression, and problem-solving abilities related to form and composition. Emphasis on drawing as a tool for self-expression and communication. Projects include still life, perspective, human figure, character design, self-portrait, and final portfolio with exhibition.\n---\nGrading: 10% drawing 1, 10% drawing 2, 10% drawing 3, 20% midterm project, 10% drawing 4, 10% drawing 5, 10% drawing 6, 20% final portfolio and presentation.",
+    "tags": [
+      "drawing",
+      "art",
+      "design",
+      "visual communication",
+      "portfolio",
+      "no final",
+      "low quizzes"
+    ]
+  },
+  {
+    "id": 107,
+    "code": "BIOL130",
+    "title": "Introduction to Bioinformatics",
+    "summary": "Explores topics in bioinformatics including tools and resources used in the discipline, with emphasis on practical application in a common user environment. Students learn to identify publicly available bioinformatics information sources, use common tools and algorithms, describe biological problems addressed by bioinformatics, recognize ethical issues in the field, and apply Unix/Linux for solving simple bioinformatics problems. Includes lectures, workshops, AI-enhanced activities, and a final research project presentation.\n---\nGrading: 15% homework (3), 10% quizzes (3), 25% midterm exam, 25% activity, 25% final project.",
+    "tags": [
+      "bioinformatics",
+      "biology",
+      "data analysis",
+      "computational biology",
+      "research",
+      "no final"
+    ]
+  },
+  {
+    "id": 108,
+    "code": "FDTN121",
+    "title": "2D Design I",
+    "summary": "Introduces the basic elements and principles of two-dimensional design, foundational to the Art and Design curriculum. Focuses on developing visual and verbal vocabularies through exploration of media, tools, and techniques, alongside theoretical and experimental processes. Students engage with historical and cultural themes, personal interpretation, and practical projects including typography, textures, realistic drawings, pictograms, abstraction, and calligraphy. Culminates in a final project and exhibition.\n---\nGrading: 10% project 1, 10% project 2, 10% project 3, 20% midterm report, 15% project 4, 15% project 5, 20% final project and presentation.",
+    "tags": [
+      "2d design",
+      "art",
+      "design",
+      "visual communication",
+      "typography",
+      "no final",
+      "low quizzes"
+    ]
+  },
+  {
+    "id": 109,
+    "code": "FDTN141",
+    "title": "4D Design",
+    "summary": "Explores the basic concepts of art and design in time and space, focusing on moving images, continuity, editing, sound-image relationships, and principles of movement. Students use video, photography, sound, and animation tools to create time-based works. Covers historical and contemporary approaches to time in art and design, with projects including cinemagraphs, parallax animation, stop motion, continuity-based films, motion graphics, and a final creative portfolio piece.\n---\nGrading: 10% project 1, 10% project 2, 10% project 3, 10% midterm (practical and theory quiz), 10% project 4, 10% project 5, 10% project 6, 20% final project, 10% project 7.",
+    "tags": [
+      "4d design",
+      "motion graphics",
+      "animation",
+      "video production",
+      "time-based media",
+      "no final",
+      "low quizzes"
+    ]
+  },
+  {
+    "id": 110,
+    "code": "FDTN112",
+    "title": "Drawing II Workshop Topics",
+    "summary": "Advanced exploration of drawing as a tool for form, thought, and expression, building on foundational skills. Students work on themed projects while developing technical, aesthetic, and conceptual abilities. Topics include still life, complex compositions, mixed media, landscapes, collaborative 'exquisite corpse' works, and storytelling through drawing. Emphasis on critique, presentation, and portfolio development, culminating in a digital portfolio.\n---\nGrading: 10% presentations, 10% project 1, 10% project 2, 10% project 3, 20% midterm, 10% project 4, 10% project 5, 20% final digital portfolio.",
+    "tags": [
+      "drawing",
+      "art",
+      "design",
+      "visual communication",
+      "portfolio",
+      "no final",
+      "low quizzes"
+    ]
+  },
+  {
+    "id": 111,
+    "code": "NMDE103",
+    "title": "New Media Design Interactive I",
+    "summary": "Introduces key internet, web, and multimedia technologies for interactive design. Covers computer-based communication, HTML, CSS, WYSIWYG editors, digital images, audio and video techniques, web animation, and publishing. Students develop and publish web pages, create animations, and integrate multimedia elements to enhance user experience. Emphasis on design principles, usability, and aesthetic evaluation.\n---\nGrading: 20% final project, 20% project 1, 20% project 2, 20% midterm, 10% critique, 10% documentation of exhibition.",
+    "tags": [
+      "web design",
+      "interactive media",
+      "html",
+      "css",
+      "multimedia",
+      "no final",
+      "low quizzes"
+    ]
+  },
+  {
+    "id": 112,
+    "code": "NMDE111",
+    "title": "New Media Design Digital Survey I",
+    "summary": "Project-based introduction to the computer as a tool for illustration, imaging, and graphic generation. Develops foundational skills in raster and vector image creation, editing, compositing, layout, and visual design for online production. Emphasis on applying visual design principles to create effective solutions for electronic media. Students work with Photoshop, Illustrator, and Acrobat to produce branding, typography, and infographic projects.\n---\nGrading: 20% presentations, 10% moodboard project, 10% masking + pen tool project, 10% midterm composite, 20% throwie typography project, 30% infographic project and presentation.",
+    "tags": [
+      "digital design",
+      "graphic design",
+      "photoshop",
+      "illustrator",
+      "visual communication",
+      "no final",
+      "low quizzes"
+    ]
+  },
+  {
+    "id": 113,
+    "code": "NMDE112",
+    "title": "New Media Design Digital Survey II",
+    "summary": "Builds on Digital Survey I with advanced studies in aesthetics, graphic form, structure, typography, visual organization, and interaction principles. Students design communication solutions for static and interactive projects, focusing on usability and multi-device output. Projects explore gestalt principles, design elements, image-based storytelling, expressive typography, and logo/type applications, culminating in an exhibition.\n---\nGrading: 10% presentations, 10% project 1 gestalt, 10% project 2 elements, 10% project 3 images, 20% midterm poster project, 10% project 4 expressive type, 20% final logo & type applications, 10% documentation of exhibition.",
+    "tags": [
+      "digital design",
+      "graphic design",
+      "typography",
+      "visual communication",
+      "branding",
+      "no final",
+      "low quizzes"
+    ]
   }
 ]
