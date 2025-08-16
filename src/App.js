@@ -28,7 +28,7 @@ const TAG_SYNONYMS = {
     "no end exam",
     "no end exams",
     "without end exam",
-    "without end exams"
+    "without end exams",
   ],
   "no midterm": [
     "no midterms",
@@ -41,9 +41,10 @@ const TAG_SYNONYMS = {
     "no midterm test",
     "no midterm tests",
     "without midterm test",
-    "without midterm tests"
+    "without midterm tests",
   ],
   "low quizzes": [
+    "low quiz",
     "no quiz",
     "no quizzes",
     "without quiz",
@@ -64,7 +65,7 @@ const TAG_SYNONYMS = {
     "quiz having no",
     "only one quiz",
     "just one quiz",
-    "single quiz"
+    "single quiz",
   ],
   "final project": [
     "project",
@@ -73,7 +74,7 @@ const TAG_SYNONYMS = {
     "end project",
     "end assignment",
     "major project",
-    "term project"
+    "term project",
   ],
   "group project": [
     "team project",
@@ -81,16 +82,7 @@ const TAG_SYNONYMS = {
     "group assignment",
     "team assignment",
     "collaboration project",
-    "joint project"
-  ],
-  science: [
-    "scientific",
-    "biology",
-    "chemistry",
-    "physics",
-    "natural science",
-    "life science",
-    "physical science"
+    "joint project",
   ],
   policy: [
     "policies",
@@ -98,7 +90,7 @@ const TAG_SYNONYMS = {
     "regulations",
     "rules",
     "guidelines",
-    "policy making"
+    "policy making",
   ],
   hacker: [
     "hacking",
@@ -106,7 +98,7 @@ const TAG_SYNONYMS = {
     "security",
     "ethical hacking",
     "penetration testing",
-    "pentesting"
+    "pentesting",
   ],
   presentation: [
     "presenting",
@@ -115,80 +107,77 @@ const TAG_SYNONYMS = {
     "slideshow",
     "pitch",
     "talk",
-    "speech"
+    "speech",
   ],
-  // "artistic perspective": [
-  //   "art",
-  //   "creative",
-  //   "artistic",
-  //   "visual arts",
-  //   "performing arts",
-  //   "aesthetic perspective"
-  // ],
-  // "ethical perspective": [
-  //   "ethics",
-  //   "morality",
-  //   "moral perspective",
-  //   "ethical",
-  //   "values",
-  //   "principles"
-  // ],
-  // "social perspective": [
-  //   "society",
-  //   "social",
-  //   "community",
-  //   "sociology",
-  //   "social view"
-  // ],
-  // "global perspective": [
-  //   "international",
-  //   "worldwide",
-  //   "global",
-  //   "cross-cultural",
-  //   "global view",
-  //   "international perspective"
-  // ],
   "writing intensive": [
     "writing heavy",
     "lots of writing",
     "essay heavy",
     "writing focused",
-    "writing based"
+    "writing based",
   ],
   "advanced elective": [
     "upper level elective",
     "advanced course",
-    "specialized elective"
-  ]
+    "specialized elective",
+  ],
 };
 
 const STOP_WORDS = new Set([
+  "quiz",
+  "quizzes",
+  "there",
+  "looking",
+  "searching",
+  "find",
+  "show",
+  "give",
+  "tell",
+  "need",
+  "want",
+  "like",
+  "just",
+  "really",
+  "kind",
+  "kindof",
+  "sort",
+  "sortof",
+  "maybe",
+  "please",
+  "about",
   "i",
   "im",
+  "i'm",
+  "me",
+  "my",
+  "mine",
+  "you",
+  "your",
+  "yours",
+  "we",
+  "us",
+  "our",
+  "ours",
+  "he",
+  "him",
+  "his",
+  "she",
+  "her",
+  "hers",
+  "they",
+  "them",
+  "their",
+  "theirs",
+  "it",
+  "its",
   "a",
   "an",
   "the",
-  "covers",
-  "covering",
-  "want",
-  "cover",
-  "for",
-  "and",
-  "or",
-  "but",
-  "if",
-  "then",
+  "this",
   "that",
-  "has",
-  "have",
-  "with",
-  "to",
-  "of",
-  "in",
-  "on",
-  "at",
-  "by",
-  "from",
+  "these",
+  "those",
+  "am",
   "is",
   "are",
   "was",
@@ -196,24 +185,80 @@ const STOP_WORDS = new Set([
   "be",
   "been",
   "being",
-  "as",
-  "it",
-  "this",
-  "so",
   "do",
   "does",
   "did",
-  "not",
+  "done",
+  "doing",
+  "has",
+  "have",
+  "had",
+  "having",
+  "will",
+  "would",
+  "shall",
+  "should",
+  "can",
+  "could",
+  "may",
+  "might",
+  "must",
+  "and",
+  "or",
+  "but",
+  "if",
+  "then",
+  "so",
+  "because",
+  "since",
+  "while",
+  "although",
+  "though",
+  "unless",
+  "until",
+  "before",
+  "after",
+  "when",
+  "whenever",
+  "where",
+  "wherever",
+  "whether",
+  "for",
+  "with",
+  "without",
+  "to",
+  "of",
+  "in",
+  "on",
+  "at",
+  "by",
+  "from",
+  "into",
+  "onto",
+  "over",
+  "under",
+  "about",
+  "around",
+  "through",
+  "across",
+  "between",
+  "within",
+  "outside",
+  "inside",
   "yes",
-  "you",
-  "your",
-  "my",
-  "me",
-  "we",
-  "us",
-  "our",
+  "no",
+  "not",
   "course",
   "courses",
+  "class",
+  "classes",
+  "subject",
+  "subjects",
+  "topic",
+  "topics",
+  "cover",
+  "covers",
+  "covering",
 ]);
 
 const ALL_TAGS = [
@@ -230,6 +275,7 @@ const ALL_TAGS = [
   "writing intensive",
   "advanced elective",
   "science",
+  "islamic culture",
 ];
 
 const NO_RESULTS_VARIATIONS = [
@@ -241,7 +287,6 @@ const NO_RESULTS_VARIATIONS = [
   "but tomorrow is another day.",
 ];
 
-// Reserved commands that should never be spell-checked
 const RESERVED_COMMANDS = new Set(["/all", "pineapple on pizza"]);
 
 function tokenize(text) {
@@ -322,23 +367,36 @@ function highlightText(text, queryTokens) {
   });
 }
 
+// --- STRONGER Damerau–Levenshtein distance ---
 function levenshtein(a, b) {
-  const matrix = Array.from({ length: a.length + 1 }, (_, i) =>
+  const dp = Array.from({ length: a.length + 1 }, () =>
     Array(b.length + 1).fill(0)
   );
-  for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
-  for (let j = 0; j <= b.length; j++) matrix[0][j] = j;
+
+  for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+  for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+
   for (let i = 1; i <= a.length; i++) {
     for (let j = 1; j <= b.length; j++) {
       const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      matrix[i][j] = Math.min(
-        matrix[i - 1][j] + 1,
-        matrix[i][j - 1] + 1,
-        matrix[i - 1][j - 1] + cost
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + cost
       );
+
+      // Damerau transposition
+      if (
+        i > 1 &&
+        j > 1 &&
+        a[i - 1] === b[j - 2] &&
+        a[i - 2] === b[j - 1]
+      ) {
+        dp[i][j] = Math.min(dp[i][j], dp[i - 2][j - 2] + 1);
+      }
     }
   }
-  return matrix[a.length][b.length];
+  return dp[a.length][b.length];
 }
 
 function isCourseCodeQuery(query) {
@@ -360,6 +418,7 @@ function App() {
   const [noResultsVariation, setNoResultsVariation] = useState("");
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [didYouMean, setDidYouMean] = useState("");
+  const [closestMatches, setClosestMatches] = useState([]);
 
   const [showTips, setShowTips] = useState(false);
   const handleShowTips = () => setShowTips(true);
@@ -413,63 +472,78 @@ function App() {
     setSearchHistory(history);
   };
 
-  const findClosestMatch = (query) => {
+  function buildDictionary(courses) {
+    const freq = new Map();
+    courses.forEach((course) => {
+      const text = `${course.title} ${course.summary} ${(course.tags || []).join(
+        " "
+      )}`;
+      text.toLowerCase()
+        .split(/\W+/)
+        .forEach((w) => {
+          if (!w) return;
+          freq.set(w, (freq.get(w) || 0) + 1);
+        });
+    });
+    return freq;
+  }
+
+  function findClosestMatch(query) {
     if (!query.trim() || courses.length === 0) return "";
 
-    const dictionary = new Set();
-
-    courses.forEach((course) => {
-      course.title.toLowerCase().split(/\W+/).forEach((w) => dictionary.add(w));
-      (course.summary || "")
-        .toLowerCase()
-        .split(/\W+/)
-        .forEach((w) => dictionary.add(w));
-      (course.tags || []).forEach((tag) =>
-        tag.toLowerCase().split(/\W+/).forEach((w) => dictionary.add(w))
-      );
-    });
-
-    ALL_TAGS.forEach((tag) =>
-      tag.toLowerCase().split(/\W+/).forEach((w) => dictionary.add(w))
-    );
-
-    Object.values(TAG_SYNONYMS)
-      .flat()
-      .forEach((syn) =>
-        syn.toLowerCase().split(/\W+/).forEach((w) => dictionary.add(w))
-      );
+    const dictionaryFreq = buildDictionary(courses);
+    const dictionary = Array.from(dictionaryFreq.keys());
 
     const words = query.split(/\s+/);
     let changed = false;
 
     const correctedWords = words.map((word) => {
       const lowerWord = word.toLowerCase();
-      if (STOP_WORDS.has(lowerWord) || /^[0-9]+$/.test(lowerWord) || isCourseCodeQuery(word)) {
+
+      if (/^[0-9]+$/.test(lowerWord) || /^[a-z]{2,5}\d{0,4}$/i.test(word))
         return word;
-      }
+      if (STOP_WORDS.has(lowerWord)) return word;
+      if (dictionaryFreq.has(lowerWord)) return word;
+
       let bestMatch = lowerWord;
       let bestDistance = Infinity;
+      let bestFreq = 0;
+
       dictionary.forEach((dictWord) => {
         if (!dictWord || dictWord.length < 2) return;
         const dist = levenshtein(lowerWord, dictWord);
-        if (dist < bestDistance) {
+
+        if (
+          dist < bestDistance ||
+          (dist === bestDistance &&
+            (dictionaryFreq.get(dictWord) || 0) > bestFreq)
+        ) {
           bestDistance = dist;
           bestMatch = dictWord;
+          bestFreq = dictionaryFreq.get(dictWord) || 0;
         }
       });
-      if (bestDistance <= 2 && bestMatch !== lowerWord) {
+
+      const threshold =
+        lowerWord.length <= 4
+          ? 1
+          : Math.max(2, Math.floor(lowerWord.length * 0.34));
+
+      if (bestDistance <= threshold && bestFreq >= 2) {
         changed = true;
         return bestMatch;
       }
+
       return word;
     });
 
     const correctedQuery = correctedWords.join(" ");
     return changed ? correctedQuery : "";
-  };
+  }
 
   const doSearch = (overrideQuery) => {
     setDidYouMean("");
+    setClosestMatches([]);
     let searchTerm = (overrideQuery ?? query).trim();
     if (!searchTerm) {
       setQuery("");
@@ -481,6 +555,11 @@ function App() {
     setHasSearched(true);
     saveSearchHistory(searchTerm);
 
+    const suggestion = findClosestMatch(searchTerm);
+    if (suggestion && suggestion !== searchTerm) {
+      setDidYouMean(suggestion);
+    }
+
     if (RESERVED_COMMANDS.has(queryLower) || isCourseCodeQuery(searchTerm)) {
       if (queryLower === "/all") {
         setResults(courses);
@@ -488,11 +567,6 @@ function App() {
       } else if (queryLower === "pineapple on pizza") {
         setResults([]);
         return;
-      }
-    } else {
-      const suggestion = findClosestMatch(searchTerm);
-      if (suggestion && suggestion !== searchTerm) {
-        setDidYouMean(suggestion);
       }
     }
 
@@ -514,10 +588,10 @@ function App() {
       }
     }
 
+    // --- Normal search logic ---
     let requiredTags = [];
     let queryForKeywords = queryLower;
 
-    // ✅ Build combined tag+synonym list sorted by length
     const tagPatterns = [];
     ALL_TAGS.forEach((tag) => {
       tagPatterns.push({ tag, pattern: tag });
@@ -554,6 +628,7 @@ function App() {
     );
 
     let filteredCourses = courses;
+
     if (requiredTags.length > 0) {
       filteredCourses = filteredCourses.filter((course) => {
         if (!course.tags) return false;
@@ -594,12 +669,24 @@ function App() {
       }
     }
 
+    if (featureKeywords.length > 0) {
+      filteredCourses = filteredCourses.filter((course) => {
+        const text = `${course.title} ${course.summary} ${(course.tags || []).join(
+          " "
+        )}`.toLowerCase();
+        return featureKeywords.every((word) =>
+          text.includes(word.toLowerCase())
+        );
+      });
+    }
+
     if (featureKeywords.length > 0 || codeKeywords.length > 0) {
       let scoredCourses = filteredCourses.map((course) => {
         let score = 0;
         featureKeywords.forEach((kw) => {
           if (tokenize(course.title).includes(kw)) score += 2;
           if (tokenize(course.summary).includes(kw)) score += 1;
+          if (tokenize((course.tags || []).join(" ")).includes(kw)) score += 2;
         });
         codeKeywords.forEach((codeFrag) => {
           if (stemCode(course.code) === codeFrag) score += 4;
@@ -607,18 +694,79 @@ function App() {
         });
         if (course.title.toLowerCase().includes(queryLower)) score += 4;
         if (course.summary.toLowerCase().includes(queryLower)) score += 2;
+        if ((course.tags || []).join(" ").toLowerCase().includes(queryLower))
+          score += 2;
         return { ...course, score };
       });
       scoredCourses = scoredCourses
         .filter((c) => c.score > 0)
         .sort((a, b) => b.score - a.score);
-      setResults(scoredCourses);
-      return;
+
+      if (scoredCourses.length > 0) {
+        setResults(scoredCourses);
+        return;
+      } else {
+        let orMatches = courses.map((course) => {
+          const text = `${course.title} ${course.summary} ${(course.tags || []).join(
+            " "
+          )}`.toLowerCase();
+          let matchCount = 0;
+          featureKeywords.forEach((word) => {
+            if (text.includes(word)) matchCount++;
+          });
+          requiredTags.forEach((tag) => {
+            if (
+              (course.tags || [])
+                .map((t) => normalizeTag(t))
+                .includes(normalizeTag(tag))
+            ) {
+              matchCount++;
+            }
+          });
+          return { ...course, matchCount };
+        });
+
+        const maxMatch = Math.max(...orMatches.map((c) => c.matchCount), 0);
+        orMatches = orMatches.filter(
+          (c) => c.matchCount === maxMatch && maxMatch > 0
+        );
+
+        if (orMatches.length > 0) {
+          setClosestMatches(orMatches);
+          setResults([]);
+          return;
+        }
+      }
     }
 
     if (requiredTags.length > 0) {
-      setResults(filteredCourses);
-      return;
+      if (filteredCourses.length > 0) {
+        setResults(filteredCourses);
+        return;
+      } else {
+        let orMatches = courses.map((course) => {
+          let matchCount = 0;
+          requiredTags.forEach((tag) => {
+            if (
+              (course.tags || [])
+                .map((t) => normalizeTag(t))
+                .includes(normalizeTag(tag))
+            ) {
+              matchCount++;
+            }
+          });
+          return { ...course, matchCount };
+        });
+        const maxMatch = Math.max(...orMatches.map((c) => c.matchCount), 0);
+        orMatches = orMatches.filter(
+          (c) => c.matchCount === maxMatch && maxMatch > 0
+        );
+        if (orMatches.length > 0) {
+          setClosestMatches(orMatches);
+          setResults([]);
+          return;
+        }
+      }
     }
 
     const queryTokensArr = tokenize(searchTerm);
@@ -699,13 +847,16 @@ function App() {
               <li>
                 <b>Combine keywords:</b>
                 <br />
-                For example, "I want a course with <b>no final</b> and is
-                an <b>artisitic perspective.</b>"
+                For example, "I want a course with <b>no final</b> and is an{" "}
+                <b>artisitic perspective.</b>"
               </li>
               <li>
                 <b>When looking for the least amount of quizzes:</b>
                 <br />
-                By simply typing "low quizzes", "few quizzes", or what is similar, Syllify will show you courses with two quizzes or less only; you can also combine it with other tags like "ethical perspective".
+                By simply typing "low quizzes", "few quizzes", or what is
+                similar, Syllify will show you courses with two quizzes or less
+                only; you can also combine it with other tags like "ethical
+                perspective".
               </li>
             </ul>
             <button className="search-btn" onClick={handleCloseTips}>
@@ -717,10 +868,7 @@ function App() {
 
       {/* Tip/Support Popup */}
       {showTipPopup && (
-        <div
-          className="coursalog-popup-overlay"
-          onClick={handleCloseTipPopup}
-        >
+        <div className="coursalog-popup-overlay" onClick={handleCloseTipPopup}>
           <div
             className="coursalog-popup"
             onClick={(e) => e.stopPropagation()}
@@ -775,6 +923,7 @@ function App() {
               setResults([]);
               setHasSearched(false);
               setDidYouMean("");
+              setClosestMatches([]);
             }}
           >
             Syllify
@@ -897,31 +1046,42 @@ function App() {
                   ?
                 </>
               )}
+              {closestMatches.length > 0 && (
+                <span className="did-you-mean-inline">
+                  {` — No courses match that exact combination. ${closestMatches.length} closest ${
+                    closestMatches.length === 1 ? "match" : "matches"
+                  } shown.`}
+                </span>
+              )}
             </div>
           )}
 
           <section
             className={`results${
-              hasSearched && results.length === 0 ? " empty" : ""
+              hasSearched && results.length === 0 && closestMatches.length === 0
+                ? " empty"
+                : ""
             }`}
           >
-            {hasSearched && results.length === 0 && (
-              <div className="no-results">
-                <div className="no-results-bold">
-                  {isPineapplePizza
-                    ? "...is a crime."
-                    : "Sorry! I couldn’t find anything…"}
-                </div>
-                {!isPineapplePizza && (
-                  <div className="no-results-variation">
-                    {noResultsVariation}
+            {hasSearched &&
+              results.length === 0 &&
+              closestMatches.length === 0 && (
+                <div className="no-results">
+                  <div className="no-results-bold">
+                    {isPineapplePizza
+                      ? "...is a crime."
+                      : "Sorry! I couldn’t find anything…"}
                   </div>
-                )}
-              </div>
-            )}
+                  {!isPineapplePizza && (
+                    <div className="no-results-variation">
+                      {noResultsVariation}
+                    </div>
+                  )}
+                </div>
+              )}
 
             {hasSearched &&
-              results.map((course) => (
+              (results.length > 0 ? results : closestMatches).map((course) => (
                 <div className="course-card" key={course.id}>
                   <div className="course-header">
                     <span className="course-title">

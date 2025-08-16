@@ -110,7 +110,7 @@
     "id": 11,
     "code": "BIOL102",
     "title": "General Biology II",
-    "summary": "Introduces animal and plant anatomy, physiology, and ecology. Topics include animal and plant development, body systems, photosynthesis, coevolution, terrestrial and aquatic ecosystems, population and community ecology, animal behavior, and conservation biology. The course uses lectures, homework, quizzes, a lab activity, a midterm, and a final research project with presentation. Emphasizes scientific terminology, critical thinking, and active participation.\n---\nGrading: 35% final project (report & presentation), 20% midterm exam, 20% lab activity, 15% homework (3), 10% quizzes (3) .",
+    "summary": "Introduces animal and plant anatomy, physiology, and ecology. Topics include animal and plant development, body systems, photosynthesis, coevolution, terrestrial and aquatic ecosystems, population and community ecology, animal behavior, and conservation biology. The course uses lectures, homework, quizzes, a lab activity, a midterm, and a final research project with presentation. Emphasizes scientific terminology, critical thinking, and active participation.\n---\nGrading: 35% final project (report & presentation), 20% midterm exam, 20% lab activity, 15% homework (3), 10% quizzes (3).",
     "tags": [
       "science",
       "no final",
@@ -157,6 +157,7 @@
       "presentation",
       "CO-OP",
       "no final",
+      "no midterm",
       "low quizzes"
     ]
   },
@@ -407,7 +408,8 @@
       "security",
       "Linux",
       "Windows",
-      "networks"
+      "networks",
+      "no midterm"
     ]
   },
   {
@@ -490,21 +492,6 @@
     ]
   },
   {
-    "id": 39,
-    "code": "ENGL309",
-    "title": "The Short Story",
-    "summary": "Explores the short story as a dynamic and innovative literary genre. Students read a variety of short stories to understand their defining features, analyze them in social and cultural contexts, and develop skills in literary analysis and critique. The course emphasizes discussion, group work, and critical engagement with literary devices and theories. Assessment includes two critical responses, a midterm, final presentations, and reflections.\n---\nGrading: 20% critical response 1, 20% critical response 2, 20% midterm, 20% final presentations, 20% reflections.",
-    "tags": [
-      "literature",
-      "analysis",
-      "artistic perspective",
-      "writing intensive",
-      "genre",
-      "no final",
-      "low quizzes"
-    ]
-  },
-  {
     "id": 40,
     "code": "ISTE140",
     "title": "Web & Mobile I",
@@ -556,6 +543,7 @@
       "UI",
       "web",
       "asynchronous",
+      "no midterm",
       "low quizzes"
     ]
   },
@@ -569,6 +557,7 @@
       "CSR",
       "leadership",
       "stakeholders",
+      "no midterm",
       "low quizzes"
     ]
   },
@@ -598,6 +587,7 @@
       "analysis",
       "philosophy",
       "ethical perspective",
+      "no midterm",
       "low quizzes"
     ]
   },
@@ -793,6 +783,8 @@
       "design",
       "manufacturing",
       "project",
+      "no midterm",
+      "no final",
       "low quizzes"
     ]
   },
@@ -861,6 +853,8 @@
       "design",
       "manufacturing",
       "project",
+      "no midterm",
+      "no final",
       "low quizzes"
     ]
   },
@@ -973,6 +967,7 @@
       "experiments",
       "testing",
       "no final",
+      "no midterm",
       "low quizzes"
     ]
   },
@@ -1001,6 +996,7 @@
       "algorithms",
       "programming",
       "engineering",
+      "no midterm",
       "low quizzes"
     ]
   },
@@ -1015,6 +1011,8 @@
       "teamwork",
       "project management",
       "engineering",
+      "no midterm",
+      "no final",
       "low quizzes"
     ]
   },
@@ -1029,6 +1027,8 @@
       "teamwork",
       "system integration",
       "engineering",
+      "no midterm",
+      "no final",
       "low quizzes"
     ]
   },
@@ -1337,6 +1337,7 @@
       "debate",
       "critical thinking",
       "writing intensive",
+      "no midterm",
       "low quizzes"
     ]
   },
@@ -1351,7 +1352,9 @@
       "language",
       "anthropology",
       "communication",
-      "social perspective"
+      "social perspective",
+      "no midterm",
+      "no final"
     ]
   },
   {
@@ -1412,13 +1415,14 @@
       "social perspective",
       "global perspective",
       "ethical perspective",
+      "no midterm",
       "low quizzes"
     ]
   },
   {
     "id": 105,
     "code": "COMM253",
-    "title": "Communication in Arabic",
+    "title": "Communication",
     "summary": "Introduces communication contexts and processes with emphasis on both conceptual and practical dimensions. Students engage in public speaking, small group problem solving, leadership, and professional writing exercises while acquiring theoretical background to understand these skills. Topics include informative and persuasive speaking, small group decision-making, conflict management, professional writing (memos, reports, agendas, minutes, executive overviews), nonverbal and intercultural communication, and use of presentation software. Tailored for business students with a focus on professional communication, collaboration, and leadership.\n---\nGrading: 10% project, 10% homeworks (5), 30% quizzes (3), 20% midterm exam, 30% final exam.",
     "tags": [
       "communication",
@@ -1441,6 +1445,7 @@
       "visual communication",
       "portfolio",
       "no final",
+      "no midterm",
       "low quizzes"
     ]
   },
@@ -1470,6 +1475,7 @@
       "visual communication",
       "typography",
       "no final",
+      "no midterm",
       "low quizzes"
     ]
   },
@@ -1515,6 +1521,7 @@
       "css",
       "multimedia",
       "no final",
+      "no midterm",
       "low quizzes"
     ]
   },
@@ -1530,6 +1537,7 @@
       "illustrator",
       "visual communication",
       "no final",
+      "no midterm",
       "low quizzes"
     ]
   },
@@ -1545,7 +1553,23 @@
       "visual communication",
       "branding",
       "no final",
+      "no midterm",
       "low quizzes"
+    ]
+  },
+  {
+    "id": 114,
+    "code": "COMM211",
+    "title": "Principles of Advertising",
+    "summary": "Introduces the principles and practices of advertising, covering theories, ethics, regulation, consumer research, media planning, message strategy, creative execution, and campaign planning. Students analyze the role of advertising in marketing and promotion, apply ethical perspectives, evaluate advertising effectiveness, and develop message strategies. Coursework includes quizzes, individual assignments, a group project simulating an advertising agency, and a final presentation of a brand campaign.\n---\nGrading: 20% quizzes (4), 25% individual assignments (2 × 12.5%), 35% group project, 20% final presentation.",
+    "tags": [
+      "advertising",
+      "marketing",
+      "communication",
+      "media planning",
+      "campaigns",
+      "no final",
+      "no midterm"
     ]
   }
 ]
