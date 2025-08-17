@@ -8,7 +8,7 @@ const courses = [
   title: "Introduction to Creative Writing: Prose and Poetry",
   summary:
     "Explore fiction, nonfiction, and poetry through writing, peer workshops, and revision.\n---\nGrading: 30% workshop pieces, 60% portfolios (fiction, nonfiction, poetry), 10% terminology quiz. Assessment is project-based with a strong focus on writing and revision; only one quiz.",
-  tags: ["no midterm", "no final", "artistic perspective", "writing intensive"]
+  tags: ["no midterm", "no final", "artistic perspective", "writing intensive", "low quizzes"]
 },
 {
   id: 2,
@@ -352,7 +352,7 @@ const courses = [
   title: "Business Ethics and Corporate Social Responsibility",
   summary:
     "Applies concepts of ethics to business at both macro and micro levels. Examines business ideologies, ethical concerns of capitalism, stakeholder theory, corporate governance, marketing and advertising ethics, employee rights and responsibilities, product safety, environmental responsibility, and ethical leadership. Emphasizes ethical reasoning, leadership, and the development of a culture of integrity. Assessment includes critical analyses, a midterm assessment, a group project, and an end-term assessment.\n---\nGrading: 20% critical analysis of problems, 20% mid-term assessment, 30% group project, 30% end-term assessment.",
-  tags: ["ethics", "CSR", "leadership", "stakeholders", "no midterm"]
+  tags: ["ethics", "CSR", "leadership", "stakeholders"]
 },
 {
   id: 45,
@@ -423,7 +423,7 @@ const courses = [
   code: "ISEE345",
   title: "Engineering Economy",
   summary:
-    "Introduces the financial analysis of engineering projects, covering time value of money, methods for comparing alternatives, depreciation, depletion, income tax considerations, and capital budgeting. Students learn to compute present worth, internal rate of return, and other metrics, analyze financial statements, and evaluate project alternatives. Assessment includes homework, quizzes, a project/case study, a midterm exam, and a comprehensive final exam.\n---\nGrading: 15% homework, 15% quizzes, 20% project/case, 20% midterm exam, 30% final exam.",
+    "Introduces the financial analysis of engineering projects, covering time value of money, methods for comparing alternatives, depreciation, depletion, income tax considerations, and capital budgeting. Students learn to compute present worth, internal rate of return, and other metrics, analyze financial statements, and evaluate project alternatives. Assessment includes homework, quizzes, a project/case study, a midterm exam, and a comprehensive final exam.\n---\nGrading: 15% homework (3), 15% quizzes (3), 20% project/case, 20% midterm exam, 30% final exam.",
   tags: ["economics", "finance", "projects", "analysis", "engineering"]
 },
 {
@@ -455,7 +455,7 @@ const courses = [
   code: "MECE200",
   title: "Fundamentals of Mechanics",
   summary:
-    "Covers statics, strength of materials, and dynamics for mechanical and industrial engineering students. Topics include equilibrium, force systems, centroids, trusses, friction, axial stresses and strains, torsion, bending, kinematics, kinetics, work, energy, impulse, momentum, and mechanical vibrations. Emphasizes problem solving and application of engineering principles. Assessment includes homework assignments, quizzes, classwork, two midterm exams, and a comprehensive final exam.\n---\nGrading: 10% homework assignments, 20% quizzes, classwork (unweighted), 20% midterm exam 1, 20% midterm exam 2, 30% final exam.",
+    "Covers statics, strength of materials, and dynamics for mechanical and industrial engineering students. Topics include equilibrium, force systems, centroids, trusses, friction, axial stresses and strains, torsion, bending, kinematics, kinetics, work, energy, impulse, momentum, and mechanical vibrations. Emphasizes problem solving and application of engineering principles. Assessment includes homework assignments, quizzes, classwork, two midterm exams, and a comprehensive final exam.\n---\nGrading: 10% homework assignments, 20% quizzes (3), classwork (unweighted), 20% midterm exam 1, 20% midterm exam 2, 30% final exam.",
   tags: ["mechanics", "statics", "dynamics", "engineering", "problem solving"]
 },
 {
@@ -463,7 +463,7 @@ const courses = [
   code: "ISEE304",
   title: "Fundamentals of Materials Science",
   summary:
-    "Overview of the structure, properties, and processing of metals, polymers, ceramics, and composites. Emphasizes the impact of materials on manufacturing optimization, throughput, and quality in industrial engineering. Topics include crystalline structures, heat treatment, stress and strain, material selection, and experimental data analysis. Assessment includes homework, lab sessions, quizzes, two midterms, and a comprehensive final exam.\n---\nGrading: 5% homework, 15% lab sessions, 15% quizzes, 20% midterm 1, 20% midterm 2, 25% final exam.",
+    "Overview of the structure, properties, and processing of metals, polymers, ceramics, and composites. Emphasizes the impact of materials on manufacturing optimization, throughput, and quality in industrial engineering. Topics include crystalline structures, heat treatment, stress and strain, material selection, and experimental data analysis. Assessment includes homework, lab sessions, quizzes, two midterms, and a comprehensive final exam.\n---\nGrading: 5% homework, 15% lab sessions, 15% quizzes (3), 20% midterm 1, 20% midterm 2, 25% final exam.",
   tags: ["materials", "manufacturing", "lab", "properties", "engineering"]
 },
 {
@@ -559,7 +559,7 @@ const courses = [
   code: "MECE110",
   title: "Thermodynamics I",
   summary:
-    "Introduces the classical theory of thermodynamics for mechanical engineering students. Topics include states, properties, processes, open and closed systems, heat transfer, work, equilibrium, the first and second laws of thermodynamics, entropy, enthalpy, thermodynamic cycles, and energy analysis of engines and components. Emphasizes problem solving and real-world applications. Assessment includes quizzes, a midterm exam, and a comprehensive final exam.\n---\nGrading: 40% quizzes, 30% midterm exam, 30% final exam.",
+    "Introduces the classical theory of thermodynamics for mechanical engineering students. Topics include states, properties, processes, open and closed systems, heat transfer, work, equilibrium, the first and second laws of thermodynamics, entropy, enthalpy, thermodynamic cycles, and energy analysis of engines and components. Emphasizes problem solving and real-world applications. Assessment includes quizzes, a midterm exam, and a comprehensive final exam.\n---\nGrading: 40% quizzes (3), 30% midterm exam, 30% final exam.",
   tags: ["thermodynamics", "energy", "cycles", "engineering", "problem solving"]
 },
 {
@@ -679,7 +679,7 @@ const courses = [
   code: "EEEE374",
   title: "EM Fields & Transmission Lines",
   summary:
-    "Provides foundations of electromagnetic fields and wave propagation, including static and time-varying fields, Maxwell’s equations, wave equations, Poynting theorem, boundary conditions, and transmission line theory. Topics include electric and magnetic fields, Gauss' Law, Faraday's Law, plane waves, reflection and transmission, Smith Chart, impedance matching, waveguides, and antenna design. Students use MATLAB and ADS software for simulation and participate in lab experiments and projects. Assessment includes homework, quizzes, labs, projects, two midterm exams, and a comprehensive final exam.\n---\nGrading: 10% homework, 10% quizzes, 20% lab, 15% projects, 20% midterm exams, 25% final exam.",
+    "Provides foundations of electromagnetic fields and wave propagation, including static and time-varying fields, Maxwell’s equations, wave equations, Poynting theorem, boundary conditions, and transmission line theory. Topics include electric and magnetic fields, Gauss' Law, Faraday's Law, plane waves, reflection and transmission, Smith Chart, impedance matching, waveguides, and antenna design. Students use MATLAB and ADS software for simulation and participate in lab experiments and projects. Assessment includes homework, quizzes, labs, projects, two midterm exams, and a comprehensive final exam.\n---\nGrading: 10% homework (5), 10% quizzes (6), 20% lab, 15% projects, 20% midterm exams (2), 25% final exam.",
   tags: ["electromagnetics", "waves", "transmission lines", "simulation", "lab"]
 },
 {
@@ -767,7 +767,7 @@ const courses = [
   code: "MLAR201",
   title: "Beginning Arabic I",
   summary:
-    "Introduces students with no prior knowledge to Modern Standard Arabic, focusing on foundational skills in speaking, listening, reading, writing, and culture. Emphasizes conversation, vocabulary, grammar, and cultural understanding. Students practice the Arabic alphabet, basic sentence construction, and engage with cultural topics related to Arabic-speaking countries. Assessment includes a project, five homework assignments, unit quizzes, a midterm exam, and a comprehensive final exam.\n---\nGrading: 10% project, 10% homework assignments (5), 30% unit quizzes, 20% midterm exam, 30% final exam.",
+    "Introduces students with no prior knowledge to Modern Standard Arabic, focusing on foundational skills in speaking, listening, reading, writing, and culture. Emphasizes conversation, vocabulary, grammar, and cultural understanding. Students practice the Arabic alphabet, basic sentence construction, and engage with cultural topics related to Arabic-speaking countries. Assessment includes a project, five homework assignments, unit quizzes, a midterm exam, and a comprehensive final exam.\n---\nGrading: 10% project, 10% homework assignments (5), 30% unit quizzes (3), 20% midterm exam, 30% final exam.",
   tags: ["Arabic", "language", "culture", "communication", "beginner", "global perspective"]
 },
 {
@@ -775,7 +775,7 @@ const courses = [
   code: "MLAR202",
   title: "Beginning Arabic II",
   summary:
-    "Second course in beginning Modern Standard Arabic, focusing on developing functional competence in speaking, listening, reading, writing, and cultural understanding. Students engage in interpersonal communication, interpret familiar texts, present information, and write short essays on familiar topics. Emphasizes vocabulary, grammar, and cultural topics related to Arabic-speaking countries. Assessment includes class participation, a project, homework assignments, quizzes, a midterm exam, and a comprehensive final exam.\n---\nGrading: 5% class participation, 5% project, 10% homework assignments, 30% quizzes, 20% midterm exam, 30% final exam.",
+    "Second course in beginning Modern Standard Arabic, focusing on developing functional competence in speaking, listening, reading, writing, and cultural understanding. Students engage in interpersonal communication, interpret familiar texts, present information, and write short essays on familiar topics. Emphasizes vocabulary, grammar, and cultural topics related to Arabic-speaking countries. Assessment includes class participation, a project, homework assignments, quizzes, a midterm exam, and a comprehensive final exam.\n---\nGrading: 5% class participation, 5% project, 10% homework assignments (10), 30% quizzes (4), 20% midterm exam, 30% final exam.",
   tags: ["Arabic", "language", "culture", "communication", "beginner", "global perspective"]
 },
 {
@@ -783,7 +783,7 @@ const courses = [
   code: "MLAR301",
   title: "Intermediate Arabic I",
   summary:
-    "Continues intermediate-level development of functional skills in Modern Standard Arabic, focusing on speaking, listening, reading, writing, and culture. Students communicate effectively on a variety of topics, read and interpret authentic materials, summarize spoken discourse, and develop skills in discussions, debates, and creative writing. Emphasizes vocabulary, grammar, and cultural understanding. Assessment includes a project, homework assignments, quizzes, a midterm exam, and a comprehensive final exam.\n---\nGrading: 10% project, 10% homework assignments, 30% quizzes, 20% midterm exam, 30% final exam.",
+    "Continues intermediate-level development of functional skills in Modern Standard Arabic, focusing on speaking, listening, reading, writing, and culture. Students communicate effectively on a variety of topics, read and interpret authentic materials, summarize spoken discourse, and develop skills in discussions, debates, and creative writing. Emphasizes vocabulary, grammar, and cultural understanding. Assessment includes a project, homework assignments, quizzes, a midterm exam, and a comprehensive final exam.\n---\nGrading: 10% project, 10% homework assignments (5), 30% quizzes (3), 20% midterm exam, 30% final exam.",
   tags: ["Arabic", "language", "culture", "communication", "intermediate"]
 },
 {
@@ -871,7 +871,7 @@ const courses = [
   code: "FDTN141",
   title: "4D Design",
   summary:
-    "Explores the basic concepts of art and design in time and space, focusing on moving images, continuity, editing, sound-image relationships, and principles of movement. Students use video, photography, sound, and animation tools to create time-based works. Covers historical and contemporary approaches to time in art and design, with projects including cinemagraphs, parallax animation, stop motion, continuity-based films, motion graphics, and a final creative portfolio piece.\n---\nGrading: 10% project 1, 10% project 2, 10% project 3, 10% midterm (practical and theory quiz), 10% project 4, 10% project 5, 10% project 6, 20% final project, 10% project 7.",
+    "Explores the basic concepts of art and design in time and space, focusing on moving images, continuity, editing, sound-image relationships, and principles of movement. Students use video, photography, sound, and animation tools to create time-based works. Covers historical and contemporary approaches to time in art and design, with projects including cinemagraphs, parallax animation, stop motion, continuity-based films, motion graphics, and a final creative portfolio piece.\n---\nGrading: 10% project 1, 10% project 2, 10% project 3, 10% midterm, 10% project 4, 10% project 5, 10% project 6, 20% final project, 10% project 7.",
   tags: ["4d design", "motion graphics", "animation", "video production", "time-based media", "no final"]
 },
 {
@@ -919,11 +919,58 @@ const courses = [
 
 // --- Utility functions (copied from your App.js) ---
 const STOP_WORDS = new Set([
-  "i", "im", "a", "an", "the", "covers", "covering", "want", "cover", "for",
-  "and", "or", "but", "if", "then", "that", "has", "have", "with", "to", "of",
-  "in", "on", "at", "by", "from", "is", "are", "was", "were", "be", "been",
-  "being", "as", "it", "this", "so", "do", "does", "did", "not", "no", "yes",
-  "you", "your", "my", "me", "we", "us", "our", "course", "courses"
+  "i",
+  "im",
+  "a",
+  "an",
+  "the",
+  "covers",
+  "covering",
+  "want",
+  "cover",
+  "for",
+  "and",
+  "or",
+  "but",
+  "if",
+  "then",
+  "that",
+  "has",
+  "have",
+  "with",
+  "to",
+  "of",
+  "in",
+  "on",
+  "at",
+  "by",
+  "from",
+  "is",
+  "are",
+  "was",
+  "were",
+  "be",
+  "been",
+  "being",
+  "as",
+  "it",
+  "this",
+  "so",
+  "do",
+  "does",
+  "did",
+  "not",
+  "no",
+  "yes",
+  "you",
+  "your",
+  "my",
+  "me",
+  "we",
+  "us",
+  "our",
+  "course",
+  "courses",
 ]);
 
 function tokenize(text) {
@@ -932,7 +979,7 @@ function tokenize(text) {
     .replace(/[^a-z0-9\s]/g, "")
     .split(/\s+/)
     .filter(Boolean)
-    .filter(word => !STOP_WORDS.has(word))
+    .filter((word) => !STOP_WORDS.has(word))
     .map((word) => stemmer(word));
 }
 
@@ -976,31 +1023,84 @@ function tfidfVector(tf, idf) {
   return tf.map((t, i) => t * idf[i]);
 }
 
-// --- NEW: extractQuizCount from App.js ---
+// --- NEW: extractQuizCount from Grading section ---
 function extractQuizCount(summary) {
   let gradingSection = "";
-  const gradingMatch = summary.match(/Grading:(.*?)(?:\n|---|$)/i);
+  const gradingMatch = summary.match(/Grading:(.*?)(?:\n|---|$)/is);
   if (gradingMatch) {
     gradingSection = gradingMatch[1];
   }
-  const matchParen = gradingSection.match(/quiz(?:zes)?\s*\((\d+)\)/i);
-  if (matchParen) {
-    return parseInt(matchParen[1], 10);
+
+  let count = 0;
+
+  // Case 1: "quiz 1", "quiz 2", etc.
+  const numberedQuizzes = gradingSection.match(/\bquiz\s*\d+/gi);
+  if (numberedQuizzes) {
+    count += numberedQuizzes.length;
   }
-  const matchOne = gradingSection.match(/(?:only\s+)?one\s+quiz/i);
-  if (matchOne) {
-    return 1;
+
+  // Case 2: "quizzes (3)" or "quiz (2)"
+  const parenMatches = gradingSection.match(
+    /\bquiz(?:zes)?\s*\(\s*(\d+)\s*\)/gi
+  );
+  if (parenMatches) {
+    parenMatches.forEach((m) => {
+      const num = m.match(/\d+/);
+      if (num) count += parseInt(num[0], 10);
+    });
   }
-  if (/quiz(?:zes)?/i.test(gradingSection)) {
-    return 1;
+
+  // Case 3: "5 quizzes"
+  const numberBefore = gradingSection.match(/(\d+)\s+quiz(?:zes)?/gi);
+  if (numberBefore) {
+    numberBefore.forEach((m) => {
+      const num = m.match(/\d+/);
+      if (num) count += parseInt(num[0], 10);
+    });
   }
-  return 0;
+
+  // Case 4: Bare "quizzes" (no number, no %)
+  const bareQuizzes = gradingSection.match(/\bquizzes?\b/gi);
+  if (bareQuizzes) {
+    bareQuizzes.forEach((m) => {
+      // Grab context around the word "quizzes"
+      const idx = gradingSection.indexOf(m);
+      const context = gradingSection.substring(
+        Math.max(0, idx - 5),
+        Math.min(gradingSection.length, idx + m.length + 5)
+      );
+
+      // Ignore if it's part of a percentage like "20% quizzes"
+      if (!/\d+%/.test(context)) {
+        count += 1; // fallback: assume at least 1 quiz
+      }
+    });
+  }
+
+  return count;
 }
 
-// --- NEW: Auto-tag "low quizzes" permanently ---
+// --- NEW: Auto-tag "low quizzes" if <= 2 OR not mentioned at all ---
 courses.forEach((course) => {
   const quizCount = extractQuizCount(course.summary || "");
-  if (quizCount <= 2) { // threshold for "low quizzes"
+  const gradingSection =
+    (course.summary.match(/Grading:(.*?)(?:\n|---|$)/is) || [])[1] || "";
+
+  // Check if the word "quiz" or "quizzes" appears at all
+  const quizMentioned = /\bquiz(?:zes)?\b/i.test(gradingSection);
+
+  if ((quizMentioned && quizCount > 0 && quizCount <= 2) || !quizMentioned) {
+    if (!course.tags) course.tags = [];
+    if (!course.tags.includes("low quizzes")) {
+      course.tags.push("low quizzes");
+    }
+  }
+});
+
+// --- NEW: Auto-tag "low quizzes" only if mentioned and <= 2 ---
+courses.forEach((course) => {
+  const quizCount = extractQuizCount(course.summary || "");
+  if (quizCount > 0 && quizCount <= 2) {
     if (!course.tags) course.tags = [];
     if (!course.tags.includes("low quizzes")) {
       course.tags.push("low quizzes");
@@ -1011,7 +1111,9 @@ courses.forEach((course) => {
 // --- Build the index ---
 const docs = courses.map(
   (c) =>
-    `${codeTokens(c.code).join(" ")} ${c.title} ${c.summary} ${(c.tags || []).join(" ")}`
+    `${codeTokens(c.code).join(" ")} ${c.title} ${c.summary} ${(c.tags || []).join(
+      " "
+    )}`
 );
 const vocab = buildVocabulary(docs);
 const idf = inverseDocumentFrequency(docs, vocab);
@@ -1026,4 +1128,6 @@ fs.writeFileSync(
   JSON.stringify({ vocab, idf, courseVectors }, null, 2)
 );
 
-console.log("✅ Done! Files written to public/courses.json and public/tfidf.json with 'low quizzes' auto-tagged.");
+console.log(
+  "✅ Done! Files written to public/courses.json and public/tfidf.json with 'low quizzes' auto-tagged (only when mentioned and <= 2)."
+);

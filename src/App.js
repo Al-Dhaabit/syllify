@@ -8,6 +8,7 @@ import {
   FaCoffee,
   FaClock,
   FaChevronDown,
+  FaArrowUp,
 } from "react-icons/fa";
 
 // --- IMPROVEMENT: Tag synonyms for fuzzy matching
@@ -280,9 +281,9 @@ const ALL_TAGS = [
 
 const NO_RESULTS_VARIATIONS = [
   "except your pretty face.",
-  "but you’re still awesome.",
+  "but you're still awesome.",
   "maybe try a different keyword?",
-  "but don’t give up!",
+  "but don't give up!",
   "but hey, you tried!",
   "but tomorrow is another day.",
 ];
@@ -431,6 +432,9 @@ function App() {
   const [openRecent, setOpenRecent] = useState(false);
   const dropdownRef = useRef(null);
 
+  // NEW: Back to Top visibility state
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
   useEffect(() => {
     if (!localStorage.getItem("coursalogDisclaimerAgreed")) {
       setShowDisclaimer(true);
@@ -463,6 +467,29 @@ function App() {
       setNoResultsVariation(NO_RESULTS_VARIATIONS[idx]);
     }
   }, [hasSearched, results]);
+
+  // NEW: Track scroll position for Back to Top button
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        setShowBackToTop(true);
+      } else {
+        setShowBackToTop(false);
+      }
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (document.documentElement) {
+      document.documentElement.scrollTop = 0;
+    }
+    if (document.body) {
+      document.body.scrollTop = 0;
+    }
+  };
 
   const saveSearchHistory = (q) => {
     if (!q.trim()) return;
@@ -1031,27 +1058,34 @@ function App() {
               {results.length === 1
                 ? "1 course found"
                 : `${results.length} courses found`}
+
               {didYouMean && (
                 <>
                   {" — Did you mean"}
-                  <button
+                  <span
                     className="did-you-mean-inline"
                     onClick={() => {
                       setQuery(didYouMean);
                       doSearch(didYouMean);
                     }}
+                    role="button"
+                    tabIndex={0}
                   >
                     {didYouMean}
-                  </button>
+                  </span>
                   ?
                 </>
               )}
+
               {closestMatches.length > 0 && (
-                <span className="did-you-mean-inline">
-                  {` — No courses match that exact combination. ${closestMatches.length} closest ${
-                    closestMatches.length === 1 ? "match" : "matches"
-                  } shown.`}
-                </span>
+                <>
+                  {" — "}
+                  <span className="closest-matches">
+                    {`${closestMatches.length} closest ${
+                      closestMatches.length === 1 ? "match" : "matches"
+                    } shown`}
+                  </span>
+                </>
               )}
             </div>
           )}
@@ -1070,7 +1104,7 @@ function App() {
                   <div className="no-results-bold">
                     {isPineapplePizza
                       ? "...is a crime."
-                      : "Sorry! I couldn’t find anything…"}
+                      : "Sorry! I couldn't find anything…"}
                   </div>
                   {!isPineapplePizza && (
                     <div className="no-results-variation">
@@ -1154,6 +1188,17 @@ function App() {
           </a>
         </span>
       </footer>
+
+      {/* Back to Top Button (only visible after scroll) */}
+      {showBackToTop && (
+        <button
+          className="back-to-top"
+          onClick={scrollToTop}
+          aria-label="Back to top"
+        >
+          <FaArrowUp size={20} />
+        </button>
+      )}
     </div>
   );
 }

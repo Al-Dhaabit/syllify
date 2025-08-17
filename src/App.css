@@ -2,10 +2,12 @@
 body,
 html,
 #root {
-  height: 100%;
   margin: 0;
   padding: 0;
   font-family: "Inter", "Segoe UI", Arial, sans-serif;
+  overscroll-behavior: none;
+
+  /* Gradient background */
   background: radial-gradient(
       1200px 900px at 20% 10%,
       #1d1d3a 0%,
@@ -13,10 +15,16 @@ html,
       #0d1024 100%
     ),
     linear-gradient(120deg, #1d1d3a 0%, #0d1024 100%);
+
   color: #e9ebff;
-  min-height: 100vh;
+
+  /* ✅ Fixes */
+  min-height: 100vh;          /* ensures it always covers viewport */
   position: relative;
   overflow-x: hidden;
+
+  /* Optional: keep gradient fixed to viewport while scrolling */
+  background-attachment: fixed;
 }
 
 .app {
@@ -1014,5 +1022,58 @@ main,
 @supports (-webkit-touch-callout: none) {
   .search-input {
     font-size: 16px !important;
+  }
+}
+/* ===== Mobile Fix for Results Count Wrapping ===== */
+.results-count {
+  white-space: normal; /* allow wrapping */
+  word-break: break-word; /* break long words if needed */
+  overflow-wrap: anywhere; /* modern fallback */
+  line-height: 1.5;
+}
+
+/* On very small screens, make it more compact */
+@media (max-width: 480px) {
+  .results-count {
+    font-size: 0.95rem;
+    line-height: 1.4;
+    text-align: left;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+.back-to-top {
+  position: fixed;
+  bottom: 2vh;
+  right: 2vw;
+  background: #8c97f7;
+  color: rgb(255, 255, 255);
+  border: none;
+  border-radius: 50%;
+  width: 48px;              /* fixed width for perfect circle */
+  height: 48px;             /* fixed height for perfect circle */
+  display: flex;            /* center the icon */
+  align-items: center;      /* vertical center */
+  justify-content: center;  /* horizontal center */
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  transition: background 0.3s ease, opacity 0.3s ease, transform 0.2s ease;
+  z-index: 1000;
+  opacity: 0.15;             /* subtle transparency */
+}
+
+.back-to-top:hover {
+  background: #8c97f7;
+  opacity: 1;
+  transform: translateY(-2px); /* small lift on hover */
+}
+
+/* Mobile-friendly: slightly larger tap target */
+@media (max-width: 600px) {
+  .back-to-top {
+    bottom: 2vh;
+    right: 4.5vw;
+    width: 48px;
+    height: 48px;
   }
 }
