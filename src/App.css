@@ -557,6 +557,20 @@ footer {
   padding-left: 0.2rem;
   letter-spacing: 0.01em;
 }
+/* Closest matches indicator styling */
+.closest-matches {
+  color: #ffd98e;
+  font-weight: 600;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: rgba(255,95,95,0.08);
+  white-space: nowrap;
+  display: inline-block;
+  margin: 0 2px;
+  box-sizing: border-box;
+  max-width: 90vw;
+  overflow-wrap: break-word;
+}
 
 /* Popups (Disclaimer / Tips / Support) */
 .coursalog-popup-overlay {
@@ -568,7 +582,13 @@ footer {
   align-items: center;
   justify-content: center;
   backdrop-filter: blur(2px);
+
+  /* 🚫 Overlay itself should not scroll */
+  overflow: hidden;
+  overscroll-behavior: contain; /* stop scroll bleed */
+  /* ❌ remove touch-action: none */
 }
+
 .coursalog-popup {
   background: rgba(24, 26, 54, 0.95);
   color: #f4f4f8;
@@ -584,6 +604,11 @@ footer {
   align-items: center;
   border: none;
   position: relative;
+}
+.coursalog-popup[style*="max-width: 700px"] {
+  max-width: 700px !important;
+  width: 98vw;
+  padding: 2.5rem 1.5rem 2rem 1.5rem;
 }
 .coursalog-popup h2 {
   font-size: 1.45rem;
@@ -616,6 +641,179 @@ footer {
   transition: filter 0.2s, transform 0.05s, box-shadow 220ms ease;
   margin-top: 0.5em;
   box-shadow: 0 10px 28px rgba(140, 151, 247, 0.4);
+}
+
+.coursalog-popup[style*="max-width: 700px"] {
+  max-width: 700px !important;
+  width: 98vw;
+  padding: 2.5rem 1.5rem 2rem 1.5rem;
+}
+
+/* Sections Table */
+/* Sections Table (neater, balanced spacing) */
+.sections-table {
+  width: 100%;
+  max-width: 1100px;      /* increased for desktop */
+  margin: 0.75em auto 1.5em auto; /* center table */
+  font-size: 1.05rem;
+  background: none;
+  border-radius: 10px;
+  overflow: hidden; /* keeps rounded corners */
+  border-collapse: collapse; /* <-- ensures no gaps between columns */
+}
+
+/* Compact table row padding for desktop/tablet */
+.sections-table th,
+.sections-table td {
+  padding: 8px 12px; /* reduced from 12px 24px */
+  text-align: center; /* <-- Center all columns */
+  border-bottom: 1px solid rgba(140, 151, 247, 0.18);
+  font-weight: 500;
+  line-height: 1.5; /* improves readability */
+}
+
+.sections-table th {
+  background: rgba(140, 151, 247, 0.1);
+  color: #cfd5ff;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+}
+
+.sections-table td {
+  color: #e9ebff;
+  font-weight: 400;
+  font-size: 0.98rem;
+  max-width: 260px; /* increased from 170px */
+  word-break: break-word;
+  white-space: normal;
+}
+
+.sections-table td:nth-child(1),
+.sections-table th:nth-child(1) {
+  max-width: 90px;
+  min-width: 60px;
+  word-break: break-word;
+  white-space: normal;
+}
+
+/* Add more vertical spacing between rows for desktop/tablet */
+.sections-table tbody {
+  display: table-row-group;
+  row-gap: 6px; /* for modern browsers, but not all support this */
+}
+.sections-table tr:not(:last-child) td {
+  padding-bottom: 14px; /* increase vertical space between rows */
+}
+
+.sections-table td:nth-child(5) {
+  max-width: 320px;       /* still allow a wider column */
+  word-break: break-word; /* allow wrapping if needed */
+  white-space: normal;    /* allow wrapping */
+  text-align: center;
+}
+
+.sections-table tr:last-child td {
+  border-bottom: none;
+}
+
+.sections-table tr:hover td {
+  background: rgba(140, 151, 247, 0.08);
+  transition: background 0.2s ease;
+}
+
+
+/* Responsive for modal/table */
+@media (max-width: 800px) {
+  .coursalog-popup[style*="max-width: 700px"] {
+    max-width: 99vw !important;
+    padding: 1.2rem 0.5rem 1.2rem 0.5rem;
+  }
+  .sections-table th,
+  .sections-table td {
+    padding: 10px 14px;
+    font-size: 0.98rem;
+  }
+}
+@media (max-width: 700px) {
+  .coursalog-popup.fullscreen-modal {
+    max-width: 98vw;
+    min-width: 0;
+    padding: 1.2rem 0.4rem 1.2rem 0.4rem;
+    border-radius: 10px;
+  }
+  .sections-table th,
+  .sections-table td {
+    padding: 8px 10px;
+    font-size: 0.95rem;
+  }
+}
+@media (max-width: 480px) {
+  .coursalog-popup.fullscreen-modal {
+    max-width: 99vw;
+    width: 99vw;
+    min-width: 0;
+    padding: 0.9rem 0.1rem 0.9rem 0.1rem;
+    border-radius: 8px;
+  }
+  .sections-table {
+    width: 100%;
+    table-layout: fixed;
+    font-size: 0.80rem;
+  }
+  .sections-table td {
+    padding: 7px 4px;
+    font-size: 0.75rem;
+    word-break: break-word;
+    white-space: normal;
+    /* Remove max-width for cells */
+  }
+  .sections-table th {
+    font-weight: 700;
+    font-size: 0.80rem;
+    white-space: nowrap;
+  }
+  .sections-table td:nth-child(5) {
+    word-break: break-word;
+    white-space: normal;
+    text-align: center;
+  }
+}
+
+/* Tablet optimization for modal and table */
+@media (min-width: 600px) and (max-width: 900px) {
+  .coursalog-popup.fullscreen-modal {
+    max-width: 98vw;
+    min-width: 0;
+    padding: 1.2rem 0.6rem 1.2rem 0.6rem;
+    border-radius: 10px;
+  }
+  .fullscreen-modal-content {
+    padding: 0.2em 0.2em;
+    max-height: 60vh;
+  }
+  .sections-table {
+    font-size: 0.92rem;
+    padding: 0;
+    margin-bottom: 1em;
+    overflow-x: auto;
+    min-width: 650px;
+  }
+  .sections-table th,
+  .sections-table td {
+    padding: 7px 8px;
+    font-size: 0.92rem;
+  }
+  .sections-table th {
+    font-size: 0.92rem;
+    white-space: nowrap;
+  }
+  .sections-table td {
+    font-size: 0.92rem;
+    max-width: 180px;
+    word-break: break-word;
+    white-space: normal;
+  }
 }
 
 /* Highlight */
@@ -993,7 +1191,7 @@ main,
 .did-you-mean-inline {
   background: none;
   border: none;
-  color: #aeb5ff;
+  color: #aeb5e9;
   font-weight: 500;
   font-size: inherit;
   cursor: pointer;
@@ -1044,8 +1242,8 @@ main,
 }
 .back-to-top {
   position: fixed;
-  bottom: 2vh;
-  right: 2vw;
+  bottom: 3.5vh;
+  right: 3.5vw;
   background: #8c97f7;
   color: rgb(255, 255, 255);
   border: none;
@@ -1068,12 +1266,255 @@ main,
   transform: translateY(-2px); /* small lift on hover */
 }
 
-/* Mobile-friendly: slightly larger tap target */
+/* Semester Toggle: Updated Version */
+.semester-toggle {
+  /* --- Settings --- */
+  --active-bg: #8c97f7;
+  --active-color: #11132f;
+  --inactive-color: #cfd5ff;
+  --container-bg: rgba(140, 151, 247, 0.1);
+  --hover-bg: rgba(140, 151, 247, 0.2);
+  --shadow-color: rgba(140, 151, 247, 0.5);
+  --border-radius: 6px; /* Reduced roundness */
+  --transition-speed: 0.2s;
+
+  display: inline-flex;
+  background-color: var(--container-bg);
+  border-radius: var(--border-radius); /* Apply the new radius */
+}
+
+/* Base button styles */
+.semester-toggle button {
+  padding: 0.3rem 0.85rem;
+  font-size: 0.85rem;
+  /* Font weight is now consistent for all states to prevent size changes */
+  font-weight: 500;
+  color: var(--inactive-color);
+  background-color: transparent;
+  border: none;
+  border-radius: var(--border-radius); /* Apply the new radius */
+  cursor: pointer;
+  transition: all var(--transition-speed) ease-in-out;
+  white-space: nowrap;
+}
+
+/* Hover effect for inactive buttons */
+.semester-toggle button:hover:not(.active) {
+  background-color: var(--hover-bg);
+  color: #ffffff;
+}
+
+/* Active state */
+.semester-toggle button.active {
+  background-color: var(--active-bg);
+  font-weight: 900;
+  color: var(--active-color);
+  /* The font-weight change has been removed */
+  box-shadow: 0 2px 8px -2px var(--shadow-color);
+}
+
+/* Mobile adjustments */
 @media (max-width: 600px) {
-  .back-to-top {
-    bottom: 2vh;
-    right: 4.5vw;
-    width: 48px;
-    height: 48px;
+  .semester-toggle button {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
   }
 }
+
+/* Fullscreen modal for course sections */
+.coursalog-popup.fullscreen-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: fit-content;
+  max-width: 1200px;      /* increased from 900px */
+  min-width: 700px;       /* increased from 520px */
+  max-height: 80vh;
+  border-radius: 12px;
+  padding: 2.4rem 1.7rem 1.7rem 1.7rem; /* more horizontal & vertical padding */
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  background: rgba(24, 26, 54, 0.98);
+  z-index: 10001;
+  box-shadow: 0 12px 48px rgba(18, 20, 40, 0.22), 0 0 0 1px rgba(140,151,247,0.18) inset;
+  /* Internal scrolling if content exceeds max-height */
+  overflow: hidden;
+}
+
+/* Modal content scrolls if needed */
+.fullscreen-modal-content {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+  margin-bottom: 1.2em;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  /* Limit height for scrolling */
+  max-height: 65vh;
+}
+
+/* Table inside modal: always full width */
+.fullscreen-modal .sections-table {
+  width: 100%;
+  margin-bottom: 1.2em;
+}
+
+/* Compact table row padding */
+.sections-table th,
+.sections-table td {
+  padding: 8px 12px; /* reduced from 12px 24px */
+  text-align: center; /* <-- Center all columns */
+  border-bottom: 1px solid rgba(140, 151, 247, 0.18);
+  font-weight: 500;
+  line-height: 1.5;
+  font-size: 1rem;
+}
+
+.sections-table th {
+  background: rgba(140, 151, 247, 0.1);
+  color: #cfd5ff;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+}
+
+.sections-table td {
+  color: #e9ebff;
+  font-weight: 400;
+  font-size: 0.98rem;
+  max-width: 260px; /* increased from 170px */
+  word-break: break-word;
+  white-space: normal;
+}
+
+.sections-table td:nth-child(1),
+.sections-table th:nth-child(1) {
+  max-width: 90px;
+  min-width: 60px;
+  word-break: break-word;
+  white-space: normal;
+}
+
+/* Add more vertical spacing between rows for desktop/tablet */
+.sections-table tbody {
+  display: table-row-group;
+  row-gap: 6px; /* for modern browsers, but not all support this */
+}
+.sections-table tr:not(:last-child) td {
+  padding-bottom: 14px; /* increase vertical space between rows */
+}
+
+.sections-table td:nth-child(5) {
+  max-width: 320px;       /* still allow a wider column */
+  word-break: break-word; /* allow wrapping if needed */
+  white-space: normal;    /* allow wrapping */
+  text-align: center;
+}
+
+.sections-table tr:last-child td {
+  border-bottom: none;
+}
+
+.sections-table tr:hover td {
+  background: rgba(140, 151, 247, 0.08);
+  transition: background 0.2s ease;
+}
+
+/* Responsive adjustments for modal */
+@media (max-width: 900px) {
+  .coursalog-popup.fullscreen-modal {
+    max-width: 99vw;
+    min-width: 0;
+    padding: 1.7rem 0.9rem 1.7rem 0.9rem;
+    border-radius: 12px;
+  }
+  .sections-table th,
+  .sections-table td {
+    padding: 10px 14px;
+    font-size: 0.98rem;
+  }
+}
+@media (max-width: 700px) {
+  .coursalog-popup.fullscreen-modal {
+    max-width: 98vw;
+    min-width: 0;
+    padding: 1.2rem 0.4rem 1.2rem 0.4rem;
+    border-radius: 10px;
+  }
+  .sections-table th,
+  .sections-table td {
+    padding: 8px 10px;
+    font-size: 0.95rem;
+  }
+}
+@media (max-width: 480px) {
+  .coursalog-popup.fullscreen-modal {
+    max-width: 99vw;
+    width: 99vw;
+    min-width: 0;
+    padding: 0.9rem 0.1rem 0.9rem 0.1rem;
+    border-radius: 8px;
+  }
+  .sections-table {
+    width: 100%;
+    table-layout: fixed;
+    font-size: 0.80rem;
+  }
+  .sections-table td {
+    padding: 7px 4px;
+    font-size: 0.75rem;
+    word-break: break-word;
+    white-space: normal;
+    /* Remove max-width for cells */
+  }
+  .sections-table th {
+    font-weight: 700;
+    font-size: 0.80rem;
+    white-space: nowrap;
+  }
+  .sections-table td:nth-child(5) {
+    word-break: break-word;
+    white-space: normal;
+    text-align: center;
+  }
+}
+
+/* Tablet optimization for modal and table */
+@media (min-width: 600px) and (max-width: 900px) {
+  .coursalog-popup.fullscreen-modal {
+    max-width: 98vw;
+    min-width: 0;
+    padding: 1.2rem 0.6rem 1.2rem 0.6rem;
+    border-radius: 10px;
+  }
+  .fullscreen-modal-content {
+    padding: 0.2em 0.2em;
+    max-height: 60vh;
+  }
+  .sections-table {
+    font-size: 0.92rem;
+    padding: 0;
+    margin-bottom: 1em;
+    overflow-x: auto;
+    min-width: 650px;
+  }
+  .sections-table th,
+  .sections-table td {
+    padding: 7px 8px;
+    font-size: 0.92rem;
+  }
+  .sections-table th {
+    font-size: 0.92rem;
+    white-space: nowrap;
+  }
+  .sections-table td {
+    font-size: 0.92rem;
+    max-width: 180px;
+    word-break: break-word;
+    white-space: normal;
+  }
+}
+

@@ -844,20 +844,6 @@
     ]
   },
   {
-    "id": 66,
-    "code": "ANTH275",
-    "title": "Global Islam",
-    "summary": "Examines the spread of Islam beyond its origins in the Middle East and the cultural, social, and political interactions that followed. Explores core tenets of Islam, historical narratives, and the diversity of Muslim practices across regions. Topics include the compatibility of Islam with Western society, Islamic history, cultural adaptation, and the experience of Muslims in minority contexts. Special emphasis is placed on the UAE as a microcosm of global Islamic diversity. Assessment includes a comprehensive final exam, midterm, essay and presentation, coursework, and five take-home tasks.\n---\nGrading: 30% final exam, 20% midterm, 25% essay & presentation, 15% coursework, 10% take-home tasks (5).",
-    "tags": [
-      "islamic culture",
-      "culture",
-      "history",
-      "diversity",
-      "global perspective",
-      "low quizzes"
-    ]
-  },
-  {
     "id": 67,
     "code": "EGEN99",
     "title": "Engineering Coop Prep",
@@ -1395,7 +1381,7 @@
   {
     "id": 105,
     "code": "COMM253",
-    "title": "Communication",
+    "title": "Communication (in Arabic)",
     "summary": "Introduces communication contexts and processes with emphasis on both conceptual and practical dimensions. Students engage in public speaking, small group problem solving, leadership, and professional writing exercises while acquiring theoretical background to understand these skills. Topics include informative and persuasive speaking, small group decision-making, conflict management, professional writing (memos, reports, agendas, minutes, executive overviews), nonverbal and intercultural communication, and use of presentation software. Tailored for business students with a focus on professional communication, collaboration, and leadership.\n---\nGrading: 10% project, 10% homeworks (5), 30% quizzes (3), 20% midterm exam, 30% final exam.",
     "tags": [
       "communication",
@@ -1543,6 +1529,93 @@
       "campaigns",
       "no final",
       "no midterm"
+    ]
+  },
+  {
+    "id": 115,
+    "code": "BIOL103",
+    "title": "General Biology I Lab",
+    "summary": "This laboratory course complements the lecture material of General Biology I. Students perform experiments that illustrate concepts of cellular and molecular biology, practice microscopy techniques, and develop skills in recording and interpreting observations. Topics include biological molecules, nucleic acids, microscopy, cell transport, enzymes, mitosis, genetics, DNA extraction, gene expression, and evolution. Coursework consists of weekly lab forms submitted after each experiment and a final lab practical at the end of the semester.\n---\nGrading: 80% lab forms (weekly), 20% final lab practical.",
+    "tags": [
+      "biology",
+      "laboratory",
+      "cell biology",
+      "genetics",
+      "molecular biology",
+      "evolution",
+      "no midterm",
+      "no final",
+      "low quizzes",
+      "science principles (non-lab science)",
+      "lab science"
+    ]
+  },
+  {
+    "id": 116,
+    "code": "ENGL376",
+    "title": "Experimental Writing",
+    "summary": "This course introduces students to innovative texts that challenge conventional ideas about language, culture, and literature. Students explore experimental writing across modernist, postmodernist, and contemporary contexts, analyzing how texts reshape perception and meaning. Coursework includes critical responses, quizzes, two exams, and a 'Literature in Context' exhibit with poster, reflection, and presentation.\n---\nGrading: 15% critical responses, 15% quizzes/discussion questions, 30% exam #1, 20% 'Literature in Context' exhibit, 20% exam #2.",
+    "tags": [
+      "literature",
+      "writing",
+      "experimental writing",
+      "modernism",
+      "postmodernism",
+      "analysis",
+      "artistic perspective",
+      "immersion: digital literature and comparative media",
+      "immersion: creative writing"
+    ]
+  },
+  {
+    "id": 117,
+    "code": "ISTE230",
+    "title": "Introduction to Database and Data Modeling",
+    "summary": "This course presents the fundamental concepts and theories of organizing and structuring data. Students learn the data modeling process, relational model, normalization theory, relational algebra, and schema mapping. Structured Query Language (SQL) is used to illustrate the translation of data models into physical databases. Coursework includes quizzes, practical exercises, a midterm exam, and a final exam.\n---\nGrading: 15% quizzes (3), 30% practical exercises (6), 25% midterm exam, 30% final exam.",
+    "tags": [
+      "databases",
+      "data modeling",
+      "SQL",
+      "relational algebra",
+      "normalization",
+      "data integrity"
+    ]
+  },
+  {
+    "id": 118,
+    "code": "ANTH275",
+    "title": "Global Islam",
+    "summary": "This course examines the spread of Islam beyond its Middle Eastern origins, exploring cultural, social, and political encounters across diverse regions. Students analyze Islamic beliefs, practices, and historical narratives, with a focus on how Muslim identities are expressed in different cultural contexts. Special attention is given to the UAE as a case study of global Islamic diversity. Coursework includes three midterm exams and a final research presentation.\n---\nGrading: 25% midterm I, 25% midterm II, 25% midterm III, 25% final research presentation.",
+    "tags": [
+      "religion",
+      "Islam",
+      "global studies",
+      "culture",
+      "history",
+      "UAE",
+      "no final",
+      "global perspective",
+      "islamic culture course",
+      "immersion: cultural anthropology",
+      "immersion: modern languages and cultures - arabic",
+      "immersion: religious studies",
+      "low quizzes"
+    ]
+  },
+  {
+    "id": 119,
+    "code": "CSCI462",
+    "title": "Introduction to Cryptography",
+    "summary": "This course introduces the foundations of cryptography and its role in security. Topics include classical ciphers, modern private-key systems (DES, AES), public-key systems (RSA, Diffie-Hellman, ElGamal), hashing, data integrity, and authentication. Students also study the mathematical concepts underlying cryptography, including modular arithmetic, finite fields, and polynomial arithmetic. Coursework includes quizzes, a two-phase project, a midterm exam, and a final exam.\n---\nGrading: 24% project (2 phases), 30% midterm exam, 26% final exam, 20% quizzes (4).",
+    "tags": [
+      "cryptography",
+      "computer science",
+      "security",
+      "encryption",
+      "decryption",
+      "mathematics",
+      "hashing",
+      "authentication"
     ]
   }
 ]

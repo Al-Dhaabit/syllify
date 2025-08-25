@@ -10,6 +10,56 @@ import {
   FaChevronDown,
   FaArrowUp,
 } from "react-icons/fa";
+import Papa from "papaparse";
+
+const ALL_TAGS = [
+  // assessment / course structure
+  "no final",
+  "no midterm",
+  "low quizzes",
+  "presentation",
+  "final project",
+  "group project",
+
+  // // general education / liberal arts requirements
+  // "general education elective",
+  // "islamic culture course",
+  // "writing intensive",
+  // "global perspective",
+  // "artistic perspective",
+  // "ethical perspective",
+  // "social perspective",
+  // "science principles (non-lab science)",
+  // "lab science",
+  // "natural science principle",
+  // "immersion",
+  // "immersion required course option",
+
+  // // immersions
+  // "cultural anthropology",
+  // "advertising and public relations",
+  // "modern languages and cultures - arabic",
+  // "creative writing",
+  // "digital literature and comparative media",
+  // "economics",
+  // "english",
+  // // "ethics",
+  // "modern languages and cultures - french",
+  // "history",
+  // "literature and media",
+  // "mathematics",
+  // "philosophy",
+  // "psychology",
+  // "religious studies",
+
+  // // major electives
+  // "BS electrical engineering professional elective",
+  // "BS industrial engineering professional elective",
+  // "BS mechanical engineering extended core elective",
+  // "BS mechanical engineering applied elective",
+  // "BS cit concentration",
+  // "BS csec advanced option",
+];
 
 // --- IMPROVEMENT: Tag synonyms for fuzzy matching
 const TAG_SYNONYMS = {
@@ -111,17 +161,57 @@ const TAG_SYNONYMS = {
     "speech",
   ],
   "writing intensive": [
+    "writing",
     "writing heavy",
     "lots of writing",
     "essay heavy",
     "writing focused",
     "writing based",
+    "WI",
   ],
   "advanced elective": [
     "upper level elective",
     "advanced course",
     "specialized elective",
   ],
+
+  // new GEN ED / LIBERAL ARTS REQUIREMENTS
+  "general education elective": ["GE"],
+  "islamic culture course": ["islcult"],
+  "global perspective": ["glb"],
+  "artistic perspective": ["art"],
+  "ethical perspective": ["eth"],
+  "social perspective": ["soc"],
+  "science principles (non-lab science)": ["sciprin","SciPrin (Bus,ME)"],
+  "lab science": ["labsci", "LabSci(CSec)"],
+  "natural science principle": ["natsci",""],
+  immersion: ["imm"],
+  "immersion required course option": ["imm*"],
+
+  // new IMMERSIONS
+  "cultural anthropology": ["anth"],
+  "advertising and public relations": ["apr"],
+  "modern languages and cultures - arabic": ["arb"],
+  "creative writing": ["crtwrt"],
+  "digital literature and comparative media": ["diglit"],
+  economics: ["econ"],
+  english: ["engl"],
+  // ethics: ["ethics"],
+  "modern languages and cultures - french": ["fr"],
+  history: ["hist"],
+  "literature and media": ["lit"],
+  mathematics: ["math"],
+  philosophy: ["phil"],
+  psychology: ["psyc"],
+  "religious studies": ["rel"],
+
+  // new MAJOR ELECTIVES
+  "BS electrical engineering professional elective": ["ee pe"],
+  "BS industrial engineering professional elective": ["ie pe"],
+  "BS mechanical engineering extended core elective": ["ext core"],
+  "BS mechanical engineering applied elective": ["appl"],
+  "BS cit concentration": ["cit conc"],
+  "BS csec advanced option": ["adv opt"],
 };
 
 const STOP_WORDS = new Set([
@@ -262,23 +352,6 @@ const STOP_WORDS = new Set([
   "covering",
 ]);
 
-const ALL_TAGS = [
-  "no final",
-  "no midterm",
-  "low quizzes",
-  "artistic perspective",
-  "ethical perspective",
-  "presentation",
-  "final project",
-  "group project",
-  "social perspective",
-  "global perspective",
-  "writing intensive",
-  "advanced elective",
-  "science",
-  "islamic culture",
-];
-
 const NO_RESULTS_VARIATIONS = [
   "except your pretty face.",
   "but you're still awesome.",
@@ -352,12 +425,19 @@ function extractQuizCount(summary) {
   return 0;
 }
 
-function highlightText(text, queryTokens) {
-  if (!queryTokens.length) return text;
+function highlightText(text, queryTokens, requiredTags = []) {
+  const allTokens = [...queryTokens, ...requiredTags.map(normalizeTag)];
+  if (!allTokens.length) return text;
   const words = text.split(/(\W+)/);
   return words.map((word, i) => {
     const stemmed = stemmer(word.toLowerCase().replace(/[^a-z]/g, ""));
-    if (queryTokens.includes(stemmed) && /[a-z]/i.test(word)) {
+    // Use Levenshtein distance for loose matching
+    const isClose = allTokens.some(
+      (token) =>
+        levenshtein(stemmed, token) <= (stemmed.length <= 4 ? 1 : 2) &&
+        /[a-z]/i.test(word)
+    );
+    if (isClose) {
       return (
         <span className="highlight" key={i}>
           {word}
@@ -400,9 +480,237 @@ function levenshtein(a, b) {
   return dp[a.length][b.length];
 }
 
+// --- Helper: Format Time from Google Sheets ---
+function formatTime(value) {
+  if (!value) return "";
+
+  // Case 1: Already a string like "10:00 AM" or "9:55 AM"
+  if (
+    typeof value === "string" &&
+    /^\d{1,2}:\d{2}\s?(AM|PM)$/i.test(value.trim())
+  ) {
+    return value.trim();
+  }
+
+  // Case 2: Google Sheets stores time as fraction of a day
+  if (typeof value === "number") {
+    const totalMinutes = Math.round(value * 24 * 60);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    const ampm = hours >= 12 ? "PM" : "AM";
+    const displayHours = ((hours + 11) % 12) + 1;
+    return `${displayHours}:${minutes.toString().padStart(2, "0")} ${ampm}`;
+  }
+
+  // Case 3: "Date(1899,11,30,13,5,0)" string
+  const match = /Date\(\d+,\d+,\d+,\s*(\d+),\s*(\d+)/.exec(value);
+  if (match) {
+    let hours = parseInt(match[1], 10);
+    let minutes = parseInt(match[2], 10);
+    const ampm = hours >= 12 ? "PM" : "AM";
+    const displayHours = ((hours + 11) % 12) + 1;
+    return `${displayHours}:${minutes.toString().padStart(2, "0")} ${ampm}`;
+  }
+
+  // Case 4: Already a range string like "10:00 AM - 10:55 AM"
+  if (
+    typeof value === "string" &&
+    /^\d{1,2}:\d{2}\s?(AM|PM)\s*-\s*\d{1,2}:\d{2}\s?(AM|PM)$/i.test(value.trim())
+  ) {
+    return value.trim();
+  }
+
+  return "";
+}
+
+// --- Helper: Format Time Range from Google Sheets ---
+function formatTimeRange(start, end) {
+  // If both are empty, return empty
+  if (!start && !end) return "";
+
+  // If start is a string like "Date(...) - Date(...)", parse both
+  if (
+    typeof start === "string" &&
+    start.includes("Date(") &&
+    start.includes(" - Date(")
+  ) {
+    const parts = start.split(" - ");
+    if (parts.length === 2) {
+      return `${formatTime(parts[0])} - ${formatTime(parts[1])}`;
+    }
+  }
+
+  // If start is a string like "10:00 AM - 10:55 AM"
+  if (
+    typeof start === "string" &&
+    /^\d{1,2}:\d{2}\s?(AM|PM)\s*-\s*\d{1,2}:\d{2}\s?(AM|PM)$/i.test(start.trim())
+  ) {
+    return start.trim();
+  }
+
+  // If start and end are both "Date(...)" strings
+  if (
+    typeof start === "string" &&
+    typeof end === "string" &&
+    start.includes("Date(") &&
+    end.includes("Date(")
+  ) {
+    return `${formatTime(start)} - ${formatTime(end)}`;
+  }
+
+  // If start and end are both numbers
+  if (typeof start === "number" && typeof end === "number") {
+    return `${formatTime(start)} - ${formatTime(end)}`;
+  }
+
+  // If only start is present and looks like a time
+  if (start && !end) return formatTime(start);
+
+  // If only end is present and looks like a time
+  if (!start && end) return formatTime(end);
+
+  // Fallback: join as string if both present
+  if (start && end) return `${formatTime(start)} - ${formatTime(end)}`;
+
+  return "";
+}
+
 function isCourseCodeQuery(query) {
   const codePattern = /^[A-Z]{2,5}\s?\d{0,4}$/i;
   return codePattern.test(query.trim());
+}
+
+const SHEET_ID = "1UUjSCTgCK7yZLvlrwwoZ2341K9aCwiYMiR7Qs8fegRA";
+const SHEET_GID_FALL2025 = "672481223";
+const SHEET_GID_SPRING2026 = "1605186669";
+
+// Accept gid as argument
+async function fetchGoogleSheet(gid) {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
+  console.log("🔗 Fetching URL:", url);
+
+  try {
+    const res = await fetch(url);
+    const text = await res.text();
+
+    const parsed = Papa.parse(text, {
+      header: false,
+      skipEmptyLines: true,
+    });
+
+    const rows = parsed.data;
+    if (!rows || rows.length === 0) {
+      console.error("❌ No rows found in sheet");
+      return [];
+    }
+
+    // Find header row
+    let headerRowIndex = -1;
+    let headerRow = null;
+    for (let i = 0; i < Math.min(10, rows.length); i++) {
+      const row = rows[i];
+      if (
+        row &&
+        row.some((cell) => {
+          const cellStr = (cell || "").toString().toLowerCase();
+          return (
+            cellStr.includes("subject") ||
+            cellStr.includes("subj") ||
+            cellStr.includes("course") ||
+            cellStr.includes("dept") ||
+            cellStr.includes("cat") ||
+            cellStr.includes("number") ||
+            cellStr.includes("sect") ||
+            cellStr.includes("instructor") ||
+            cellStr.includes("credit") ||
+            cellStr.includes("crdt")
+          );
+        })
+      ) {
+        headerRowIndex = i;
+        headerRow = row;
+        break;
+      }
+    }
+
+    if (!headerRow) {
+      console.error("❌ Could not find header row in sheet");
+      console.log("First 5 rows:", rows.slice(0, 5));
+      return [];
+    }
+
+    // Normalize headers
+    const headers = headerRow.map((h) =>
+      (h || "")
+        .toString()
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "")
+        .replace(/[^a-z0-9]/g, "")
+    );
+
+    console.log("📌 Normalized headers:", headers);
+
+    // Data rows
+    const dataRows = rows.slice(headerRowIndex + 1);
+
+    // Convert rows into objects
+    const objects = dataRows.map((row) => {
+      const obj = {};
+      headers.forEach((h, i) => {
+        obj[h] = row[i] != null ? String(row[i]).trim() : "";
+      });
+      return obj;
+    });
+
+    console.log(`✅ Found ${objects.length} rows`);
+    if (objects.length > 0) {
+      console.log("✅ Sample row:", objects[0]);
+    }
+
+    return objects;
+  } catch (error) {
+    console.error("❌ Error fetching sheet:", error);
+    return [];
+  }
+}
+
+function getSectionsForCourse(course, sheetData) {
+  if (!sheetData || sheetData.length === 0) return [];
+
+  const normalize = (str) =>
+    (str || "").toString().replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+
+  const courseCodeNorm = normalize(course.code);
+
+  const matches = sheetData.filter((row) => {
+    // Try to find subject
+    const subject =
+      row.subject ||
+      row.subj ||
+      row.course ||
+      row.dept ||
+      row.department ||
+      "";
+
+    // Try to find catalog/number
+    const cat =
+      row.cat ||
+      row.catalog ||
+      row.number ||
+      row.num ||
+      row.crn ||
+      "";
+
+    const sheetCodeNorm = normalize(subject + cat);
+    return sheetCodeNorm === courseCodeNorm;
+  });
+
+  console.log(
+    `🔎 Looking for ${course.code}, found ${matches.length} sections`
+  );
+
+  return matches;
 }
 
 function App() {
@@ -434,6 +742,66 @@ function App() {
 
   // NEW: Back to Top visibility state
   const [showBackToTop, setShowBackToTop] = useState(false);
+
+  // NEW: Selected course for sections popup
+  const [selectedCourse, setSelectedCourse] = useState(null);
+
+  // NEW: Refresh reminder popup state
+  const [showRefreshReminder, setShowRefreshReminder] = useState(false);
+
+  // NEW: Timer for refresh reminder (every 30 minutes)
+  useEffect(() => {
+    // Show reminder after 30 minutes (1800000 ms)
+    const timer = setTimeout(() => {
+      setShowRefreshReminder(true);
+    }, 1800000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Optional: If user dismisses, show again after another 30 minutes
+  useEffect(() => {
+    let timer;
+    if (!showRefreshReminder) {
+      timer = setTimeout(() => {
+        setShowRefreshReminder(true);
+      }, 1800000);
+    }
+    return () => timer && clearTimeout(timer);
+  }, [showRefreshReminder]);
+
+  // Lock background scroll for ANY modal popup
+  useEffect(() => {
+    const modalOpen =
+      showDisclaimer || showTips || showTipPopup || selectedCourse;
+    if (modalOpen) {
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    };
+  }, [showDisclaimer, showTips, showTipPopup, selectedCourse]);
+
+  // NEW: Store both semesters' sheet data
+  const [sheetDataFall, setSheetDataFall] = useState([]);
+  const [sheetDataSpring, setSheetDataSpring] = useState([]);
+  // NEW: Track selected semester in modal
+  const [selectedSemester, setSelectedSemester] = useState("fall");
+
+  // Fetch both sheets on mount
+  useEffect(() => {
+    fetchGoogleSheet(SHEET_GID_FALL2025).then((data) => {
+      setSheetDataFall(data || []);
+    });
+    fetchGoogleSheet(SHEET_GID_SPRING2026).then((data) => {
+      setSheetDataSpring(data || []);
+    });
+  }, []);
 
   useEffect(() => {
     if (!localStorage.getItem("coursalogDisclaimerAgreed")) {
@@ -569,254 +937,297 @@ function App() {
   }
 
   const doSearch = (overrideQuery) => {
-    setDidYouMean("");
-    setClosestMatches([]);
-    let searchTerm = (overrideQuery ?? query).trim();
-    if (!searchTerm) {
-      setQuery("");
+  setDidYouMean("");
+  setClosestMatches([]);
+  let searchTerm = (overrideQuery ?? query).trim();
+  if (!searchTerm) {
+    setQuery("");
+    setResults([]);
+    setHasSearched(false);
+    return;
+  }
+  const queryLower = searchTerm.toLowerCase();
+  setHasSearched(true);
+  saveSearchHistory(searchTerm);
+
+  const suggestion = findClosestMatch(searchTerm);
+  if (suggestion && suggestion !== searchTerm) {
+    setDidYouMean(suggestion);
+  }
+
+  // Reserved commands
+  if (RESERVED_COMMANDS.has(queryLower) || isCourseCodeQuery(searchTerm)) {
+    if (queryLower === "/all") {
+      setResults(courses);
+      return;
+    } else if (queryLower === "pineapple on pizza") {
       setResults([]);
-      setHasSearched(false);
       return;
     }
-    const queryLower = searchTerm.toLowerCase();
-    setHasSearched(true);
-    saveSearchHistory(searchTerm);
+  }
 
-    const suggestion = findClosestMatch(searchTerm);
-    if (suggestion && suggestion !== searchTerm) {
-      setDidYouMean(suggestion);
+  // Exact course code match
+  const codeQuery = searchTerm.replace(/\s+/g, "").toUpperCase();
+  const exactMatch = courses.find(
+    (course) => course.code.replace(/\s+/g, "").toUpperCase() === codeQuery
+  );
+  if (exactMatch) {
+    setResults([exactMatch]);
+    return;
+  }
+  if (/^[A-Z]{2,6}$/.test(codeQuery)) {
+    const prefixMatches = courses.filter((course) =>
+      course.code.toUpperCase().startsWith(codeQuery)
+    );
+    if (prefixMatches.length > 0) {
+      setResults(prefixMatches);
+      return;
     }
+  }
 
-    if (RESERVED_COMMANDS.has(queryLower) || isCourseCodeQuery(searchTerm)) {
-      if (queryLower === "/all") {
-        setResults(courses);
-        return;
-      } else if (queryLower === "pineapple on pizza") {
+  // --- NEW: Exact course title match ---
+  const exactTitleMatches = courses.filter(
+    (course) => course.title.trim().toLowerCase() === queryLower
+  );
+  if (exactTitleMatches.length > 0) {
+    setResults(exactTitleMatches);
+    return;
+  }
+
+  // --- Normal search logic ---
+  let requiredTags = [];
+  let queryForKeywords = queryLower;
+
+  // Extract tags
+  const tagPatterns = [];
+  ALL_TAGS.forEach((tag) => {
+    tagPatterns.push({ tag, pattern: tag });
+    if (TAG_SYNONYMS[tag]) {
+      TAG_SYNONYMS[tag].forEach((syn) => {
+        tagPatterns.push({ tag, pattern: syn });
+      });
+    }
+  });
+  tagPatterns.sort((a, b) => b.pattern.length - a.pattern.length);
+
+  tagPatterns.forEach(({ tag, pattern }) => {
+    const regex = new RegExp(
+      `\\b${pattern.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}\\b`,
+      "gi"
+    );
+    if (regex.test(queryForKeywords)) {
+      requiredTags.push(tag);
+      queryForKeywords = queryForKeywords.replace(regex, "");
+    }
+  });
+
+  queryForKeywords = queryForKeywords
+    .replace(
+      /\b(and|or|the|a|an|for|with|to|of|in|on|at|by|from|is|are|was|were|be|been|being|as|it|this|so|do|does|did|not|no|yes|you|your|my|me|we|us|our|course|courses)\b/gi,
+      ""
+    )
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const featureKeywords = queryForKeywords ? tokenize(queryForKeywords) : [];
+  const codeKeywords = featureKeywords.filter((word) =>
+    /^[a-z]{2,5}$/.test(word)
+  );
+
+  let filteredCourses = courses;
+
+  // ✅ Combined AND logic (tags OR text, keywords in text)
+  if (featureKeywords.length > 0 || requiredTags.length > 0) {
+    filteredCourses = filteredCourses.filter((course) => {
+      const text = `${course.title} ${course.summary} ${(course.tags || []).join(
+        " "
+      )}`.toLowerCase();
+
+      // Check all keywords in text
+      const allKeywordsPresent = featureKeywords.every((word) =>
+        text.includes(word.toLowerCase())
+      );
+
+      // Check all required tags (allow match in tags OR text, with synonyms)
+      const allTagsPresent = requiredTags.every((tag) => {
+        const normalizedRequiredTag = normalizeTag(tag);
+        const normalizedCourseTags = (course.tags || []).map((t) =>
+          normalizeTag(t)
+        );
+
+        if (normalizedCourseTags.includes(normalizedRequiredTag)) return true;
+        if (text.includes(normalizedRequiredTag)) return true;
+        if (TAG_SYNONYMS[tag]) {
+          return TAG_SYNONYMS[tag].some((syn) => {
+            const normSyn = normalizeTag(syn);
+            return (
+              normalizedCourseTags.includes(normSyn) || text.includes(normSyn)
+            );
+          });
+        }
+        return false;
+      });
+
+      return allKeywordsPresent && allTagsPresent;
+    });
+
+    if (requiredTags.includes("low quizzes")) {
+      filteredCourses = filteredCourses
+        .map((course) => ({
+          ...course,
+          quizCount: extractQuizCount(course.summary || ""),
+        }))
+        .sort((a, b) => a.quizCount - b.quizCount);
+    }
+  }
+
+  // --- Scoring ---
+  if (featureKeywords.length > 0 || codeKeywords.length > 0) {
+    let scoredCourses = filteredCourses.map((course) => {
+      let score = 0;
+      featureKeywords.forEach((kw) => {
+        if (tokenize(course.title).includes(kw)) score += 2;
+        if (tokenize(course.summary).includes(kw)) score += 1;
+        if (tokenize((course.tags || []).join(" ")).includes(kw)) score += 2;
+      });
+      codeKeywords.forEach((codeFrag) => {
+        if (stemCode(course.code) === codeFrag) score += 4;
+        else if (stemCode(course.code).startsWith(codeFrag)) score += 2;
+      });
+      if (course.title.toLowerCase().includes(queryLower)) score += 4;
+      if (course.summary.toLowerCase().includes(queryLower)) score += 2;
+      if ((course.tags || []).join(" ").toLowerCase().includes(queryLower))
+        score += 2;
+      return { ...course, score };
+    });
+    scoredCourses = scoredCourses
+      .filter((c) => c.score > 0)
+      .sort((a, b) => b.score - a.score);
+
+    if (scoredCourses.length > 0) {
+      setResults(scoredCourses);
+      return;
+    } else {
+      // OR fallback
+      let orMatches = courses.map((course) => {
+        const text = `${course.title} ${course.summary} ${(course.tags || []).join(
+          " "
+        )}`.toLowerCase();
+        let matchCount = 0;
+        featureKeywords.forEach((word) => {
+          if (text.includes(word)) matchCount++;
+        });
+        requiredTags.forEach((tag) => {
+          const normalizedCourseTags = (course.tags || []).map((t) =>
+            normalizeTag(t)
+          );
+          if (normalizedCourseTags.includes(normalizeTag(tag))) {
+            matchCount++;
+          } else if (
+            TAG_SYNONYMS[tag] &&
+            TAG_SYNONYMS[tag].some((syn) =>
+              normalizedCourseTags.includes(normalizeTag(syn))
+            )
+          ) {
+            matchCount++;
+          }
+        });
+        return { ...course, matchCount };
+      });
+
+      const maxMatch = Math.max(...orMatches.map((c) => c.matchCount), 0);
+      orMatches = orMatches.filter(
+        (c) => c.matchCount === maxMatch && maxMatch > 0
+      );
+
+      if (orMatches.length > 0) {
+        setClosestMatches(orMatches);
         setResults([]);
         return;
       }
     }
+  }
 
-    const codeQuery = searchTerm.replace(/\s+/g, "").toUpperCase();
-    const exactMatch = courses.find(
-      (course) => course.code.replace(/\s+/g, "").toUpperCase() === codeQuery
-    );
-    if (exactMatch) {
-      setResults([exactMatch]);
+  // --- Tag-only fallback ---
+  if (requiredTags.length > 0) {
+    if (filteredCourses.length > 0) {
+      setResults(filteredCourses);
       return;
-    }
-    if (/^[A-Z]{2,6}$/.test(codeQuery)) {
-      const prefixMatches = courses.filter((course) =>
-        course.code.toUpperCase().startsWith(codeQuery)
+    } else {
+      let orMatches = courses.map((course) => {
+        let matchCount = 0;
+        requiredTags.forEach((tag) => {
+          const normalizedCourseTags = (course.tags || []).map((t) =>
+            normalizeTag(t)
+          );
+          if (normalizedCourseTags.includes(normalizeTag(tag))) {
+            matchCount++;
+          } else if (
+            TAG_SYNONYMS[tag] &&
+            TAG_SYNONYMS[tag].some((syn) =>
+              normalizedCourseTags.includes(normalizeTag(syn))
+            )
+          ) {
+            matchCount++;
+          }
+        });
+        return { ...course, matchCount };
+      });
+      const maxMatch = Math.max(...orMatches.map((c) => c.matchCount), 0);
+      orMatches = orMatches.filter(
+        (c) => c.matchCount === maxMatch && maxMatch > 0
       );
-      if (prefixMatches.length > 0) {
-        setResults(prefixMatches);
+      if (orMatches.length > 0) {
+        setClosestMatches(orMatches);
+        setResults([]);
         return;
       }
     }
+  }
 
-    // --- Normal search logic ---
-    let requiredTags = [];
-    let queryForKeywords = queryLower;
-
-    const tagPatterns = [];
-    ALL_TAGS.forEach((tag) => {
-      tagPatterns.push({ tag, pattern: tag });
-      if (TAG_SYNONYMS[tag]) {
-        TAG_SYNONYMS[tag].forEach((syn) => {
-          tagPatterns.push({ tag, pattern: syn });
-        });
-      }
-    });
-    tagPatterns.sort((a, b) => b.pattern.length - a.pattern.length);
-
-    tagPatterns.forEach(({ tag, pattern }) => {
-      const regex = new RegExp(
-        `\\b${pattern.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}\\b`,
-        "gi"
-      );
-      if (regex.test(queryForKeywords)) {
-        requiredTags.push(tag);
-        queryForKeywords = queryForKeywords.replace(regex, "");
-      }
-    });
-
-    queryForKeywords = queryForKeywords
-      .replace(
-        /\b(and|or|the|a|an|for|with|to|of|in|on|at|by|from|is|are|was|were|be|been|being|as|it|this|so|do|does|did|not|no|yes|you|your|my|me|we|us|our|course|courses)\b/gi,
-        ""
-      )
-      .replace(/\s+/g, " ")
-      .trim();
-
-    const featureKeywords = queryForKeywords ? tokenize(queryForKeywords) : [];
-    const codeKeywords = featureKeywords.filter((word) =>
-      /^[a-z]{2,5}$/.test(word)
-    );
-
-    let filteredCourses = courses;
-
-    if (requiredTags.length > 0) {
-      filteredCourses = filteredCourses.filter((course) => {
-        if (!course.tags) return false;
-        for (const requiredTag of requiredTags) {
-          let tagFound = false;
-          const normalizedRequiredTag = normalizeTag(requiredTag);
-          for (const courseTag of course.tags) {
-            if (normalizeTag(courseTag) === normalizedRequiredTag) {
-              tagFound = true;
-              break;
-            }
-          }
-          if (!tagFound && TAG_SYNONYMS[requiredTag]) {
-            for (const synonym of TAG_SYNONYMS[requiredTag]) {
-              const normalizedSynonym = normalizeTag(synonym);
-              for (const courseTag of course.tags) {
-                if (normalizeTag(courseTag) === normalizedSynonym) {
-                  tagFound = true;
-                  break;
-                }
-              }
-              if (tagFound) break;
-            }
-          }
-          if (!tagFound) {
-            return false;
-          }
-        }
-        return true;
-      });
-      if (requiredTags.includes("low quizzes")) {
-        filteredCourses = filteredCourses
-          .map((course) => ({
-            ...course,
-            quizCount: extractQuizCount(course.summary || ""),
-          }))
-          .sort((a, b) => a.quizCount - b.quizCount);
-      }
-    }
-
-    if (featureKeywords.length > 0) {
-      filteredCourses = filteredCourses.filter((course) => {
-        const text = `${course.title} ${course.summary} ${(course.tags || []).join(
-          " "
-        )}`.toLowerCase();
-        return featureKeywords.every((word) =>
-          text.includes(word.toLowerCase())
-        );
-      });
-    }
-
-    if (featureKeywords.length > 0 || codeKeywords.length > 0) {
-      let scoredCourses = filteredCourses.map((course) => {
-        let score = 0;
-        featureKeywords.forEach((kw) => {
-          if (tokenize(course.title).includes(kw)) score += 2;
-          if (tokenize(course.summary).includes(kw)) score += 1;
-          if (tokenize((course.tags || []).join(" ")).includes(kw)) score += 2;
-        });
-        codeKeywords.forEach((codeFrag) => {
-          if (stemCode(course.code) === codeFrag) score += 4;
-          else if (stemCode(course.code).startsWith(codeFrag)) score += 2;
-        });
-        if (course.title.toLowerCase().includes(queryLower)) score += 4;
-        if (course.summary.toLowerCase().includes(queryLower)) score += 2;
-        if ((course.tags || []).join(" ").toLowerCase().includes(queryLower))
-          score += 2;
-        return { ...course, score };
-      });
-      scoredCourses = scoredCourses
-        .filter((c) => c.score > 0)
-        .sort((a, b) => b.score - a.score);
-
-      if (scoredCourses.length > 0) {
-        setResults(scoredCourses);
-        return;
-      } else {
-        let orMatches = courses.map((course) => {
-          const text = `${course.title} ${course.summary} ${(course.tags || []).join(
-            " "
-          )}`.toLowerCase();
-          let matchCount = 0;
-          featureKeywords.forEach((word) => {
-            if (text.includes(word)) matchCount++;
-          });
-          requiredTags.forEach((tag) => {
-            if (
-              (course.tags || [])
-                .map((t) => normalizeTag(t))
-                .includes(normalizeTag(tag))
-            ) {
-              matchCount++;
-            }
-          });
-          return { ...course, matchCount };
-        });
-
-        const maxMatch = Math.max(...orMatches.map((c) => c.matchCount), 0);
-        orMatches = orMatches.filter(
-          (c) => c.matchCount === maxMatch && maxMatch > 0
-        );
-
-        if (orMatches.length > 0) {
-          setClosestMatches(orMatches);
-          setResults([]);
-          return;
-        }
-      }
-    }
-
-    if (requiredTags.length > 0) {
-      if (filteredCourses.length > 0) {
-        setResults(filteredCourses);
-        return;
-      } else {
-        let orMatches = courses.map((course) => {
-          let matchCount = 0;
-          requiredTags.forEach((tag) => {
-            if (
-              (course.tags || [])
-                .map((t) => normalizeTag(t))
-                .includes(normalizeTag(tag))
-            ) {
-              matchCount++;
-            }
-          });
-          return { ...course, matchCount };
-        });
-        const maxMatch = Math.max(...orMatches.map((c) => c.matchCount), 0);
-        orMatches = orMatches.filter(
-          (c) => c.matchCount === maxMatch && maxMatch > 0
-        );
-        if (orMatches.length > 0) {
-          setClosestMatches(orMatches);
-          setResults([]);
-          return;
-        }
-      }
-    }
-
-    const queryTokensArr = tokenize(searchTerm);
-    const queryTf = fuzzyTermFrequency(queryTokensArr, tfidfData.vocab);
-    const queryVec = tfidfVector(queryTf, tfidfData.idf);
-    const ranked = courses
-      .map((course, i) => ({
-        ...course,
-        score: cosineSimilarity(queryVec, tfidfData.courseVectors[i]),
-      }))
-      .sort((a, b) => b.score - a.score);
-    const maxScore = ranked.length > 0 ? ranked[0].score : 0;
-    const threshold = 0.2;
-    const filtered = ranked.filter(
-      (c) => c.score > 0 && c.score >= threshold * maxScore
-    );
-    setResults(filtered.length ? filtered : []);
-  };
+  // --- TF-IDF fallback ---
+  const queryTokensArr = tokenize(searchTerm);
+  const queryTf = fuzzyTermFrequency(queryTokensArr, tfidfData.vocab);
+  const queryVec = tfidfVector(queryTf, tfidfData.idf);
+  const ranked = courses
+    .map((course, i) => ({
+      ...course,
+      score: cosineSimilarity(queryVec, tfidfData.courseVectors[i]),
+    }))
+    .sort((a, b) => b.score - a.score);
+  const maxScore = ranked.length > 0 ? ranked[0].score : 0;
+  const threshold = 0.2;
+  const filtered = ranked.filter(
+    (c) => c.score > 0 && c.score >= threshold * maxScore
+  );
+  setResults(filtered.length ? filtered : []);
+};
 
   const isPineapplePizza = query.trim().toLowerCase() === "pineapple on pizza";
 
   return (
     <div className="app">
+      {/* --- NEW: Refresh Reminder Popup --- */}
+      {showRefreshReminder && (
+        <div className="coursalog-popup-overlay">
+          <div className="coursalog-popup" style={{ maxWidth: 420 }}>
+            <h2>Refresh for Latest Info</h2>
+            <div style={{ marginBottom: "1.5em", textAlign: "center" }}>
+              <span>
+                Course and sheet data change WAY TOO often.
+              </span>
+            </div>
+            <button
+              className="search-btn"
+              style={{ marginBottom: "0em" }}
+              onClick={() => window.location.reload()}
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Disclaimer Popup */}
       {showDisclaimer && (
         <div className="coursalog-popup-overlay">
@@ -859,11 +1270,6 @@ function App() {
             <h2>Tips for using Syllify</h2>
             <ul>
               <li>
-                <b>This is a search engine, not ChatGPT:</b>
-                <br />
-                The more specific your search, the better your results.
-              </li>
-              <li>
                 <b>Use "/all" to see all courses.</b>
               </li>
               <li>
@@ -884,6 +1290,12 @@ function App() {
                 similar, Syllify will show you courses with two quizzes or less
                 only; you can also combine it with other tags like "ethical
                 perspective".
+              </li>
+               <li>
+                <b>Clicking/Pressing on a course's name or code</b>
+                <br />
+                This will allow you to quickly view more details about the course,
+                including its sections, timings, and instructors.
               </li>
             </ul>
             <button className="search-btn" onClick={handleCloseTips}>
@@ -1044,8 +1456,8 @@ function App() {
                   className="action-icon"
                   type="button"
                   onClick={handleShowTipPopup}
-                  title="Support CoursaLog"
-                  aria-label="Support CoursaLog"
+                  title="Support Syllify"
+                  aria-label="Support Syllify"
                 >
                   <FaCoffee size={18} />
                 </button>
@@ -1117,7 +1529,11 @@ function App() {
             {hasSearched &&
               (results.length > 0 ? results : closestMatches).map((course) => (
                 <div className="course-card" key={course.id}>
-                  <div className="course-header">
+                  <div
+                    className="course-header"
+                    onClick={() => setSelectedCourse(course)}
+                    style={{ cursor: "pointer" }}
+                  >
                     <span className="course-title">
                       {highlightText(course.title, tokenize(query))}
                     </span>
@@ -1148,9 +1564,97 @@ function App() {
                       ))}
                     </div>
                   )}
+
+                  {/* --- REMOVED: Inline expandable sections --- */}
+                  {/* {course.open && (
+                    <div className="course-sections">
+                      ...sections table...
+                    </div>
+                  )} */}
                 </div>
               ))}
           </section>
+
+          {/* --- NEW: Course Sections Popup Modal --- */}
+          {selectedCourse && (() => {
+            // Pick correct sheet data based on semester
+            const activeSheetData =
+              selectedSemester === "fall" ? sheetDataFall : sheetDataSpring;
+            const sections = getSectionsForCourse(selectedCourse, activeSheetData);
+
+            return (
+              <div
+                className="coursalog-popup-overlay"
+                onClick={() => setSelectedCourse(null)}
+              >
+                <div
+                  className="coursalog-popup fullscreen-modal"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="fullscreen-modal-content">
+                    <h2>
+                      {selectedCourse.code} — {selectedCourse.title}
+                    </h2>
+
+                    {/* Semester Toggle */}
+                    <div className="semester-toggle">
+                      <button
+                        className={selectedSemester === "fall" ? "active" : ""}
+                        onClick={() => setSelectedSemester("fall")}
+                      >
+                        Fall 2025
+                      </button>
+                      <button
+                        className={selectedSemester === "spring" ? "active" : ""}
+                        onClick={() => setSelectedSemester("spring")}
+                      >
+                        Spring 2026
+                      </button>
+                    </div>
+                    <div style={{ marginBottom: "1.2em" }}>
+                      {!activeSheetData || activeSheetData.length === 0 ? (
+                        <p>
+                          Section data unavailable.
+                        </p>
+                      ) : sections.length === 0 ? (
+                        <p>No sections found for this course.</p>
+                      ) : (
+<table className="sections-table">
+  <thead>
+    <tr>
+      {/* <th>Attributes</th> */}
+      <th>Section</th>
+      <th>Credits</th>
+      <th>Instructor</th>
+      <th>Days</th>
+      <th>Time</th>
+      <th>Room</th>
+    </tr>
+  </thead>
+  <tbody>
+    {sections.map((s, i) => (
+      <tr key={i}>
+        {/* <td>{s.courseattribute}</td> */}
+        <td>{s.sect}</td>
+        <td>{s.crdt}</td>
+        <td>{s.instructor}</td>
+        <td>{s.days}</td>
+        <td>{formatTimeRange(s.timestart, s.timeend)}</td>
+        <td>{s.room}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>                      )}
+                    </div>
+                  </div>
+                  <button className="search-btn" onClick={() => setSelectedCourse(null)}>
+                    Close
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+          {/* --- END Course Sections Popup --- */}
         </div>
       </main>
 
