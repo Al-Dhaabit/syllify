@@ -1617,5 +1617,19 @@
       "hashing",
       "authentication"
     ]
+  },
+  {
+    "id": "120",
+    "code": "CSEC310",
+    "title": "Endpoint Security Engineering",
+    "summary": "This course covers defensive cybersecurity measures for protecting computing endpoints. Students study vulnerabilities, threats, and defensive strategies, and apply host-based controls through hands-on labs. Topics include threat actor behaviors, SIEM, MITRE ATT&CK, threat hunting, vulnerability lifecycle, and endpoint detection and response (EDR). Coursework includes quizzes, labs, a project presentation, a midterm exam, and a practical exam.\n---\nGrading: 30% project/presentation, 20% quizzes (4), 20% midterm exam, 20% labs (4), 10% practical exam.",
+    "tags": [
+      "cybersecurity",
+      "endpoint security",
+      "defensive security",
+      "labs",
+      "practical exam",
+      "project-based"
+    ]
   }
 ]
