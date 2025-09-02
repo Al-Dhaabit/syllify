@@ -2,13 +2,25 @@ const fs = require("fs");
 const { stemmer } = require("porter-stemmer");
 
 const courses = [
- {
-  id: 1,
+{
+  id: "1",
   code: "ENGL211",
   title: "Introduction to Creative Writing: Prose and Poetry",
-  summary:
-    "Explore fiction, nonfiction, and poetry through writing, peer workshops, and revision.\n---\nGrading: 30% workshop pieces, 60% portfolios (fiction, nonfiction, poetry), 10% terminology quiz. Assessment is project-based with a strong focus on writing and revision; only one quiz.",
-  tags: ["no midterm", "no final", "artistic perspective", "writing intensive", "low quizzes"]
+  summary: "This course introduces students to the craft of creative writing across fiction, nonfiction, and poetry. Students experiment with different forms, participate in workshops, and produce polished portfolio pieces. Emphasis is placed on peer feedback, editing, and developing a personal creative voice. Coursework includes workshop submissions, three portfolios (fiction, nonfiction, poetry), and a terminology quiz.\n---\nGrading: 30% workshop pieces, 20% fiction portfolio, 20% nonfiction portfolio, 20% poetry portfolio, 10% terminology quiz.",
+  tags: [
+    "creative writing",
+    "fiction",
+    "poetry",
+    "nonfiction",
+    "workshop",
+    "portfolio",
+    "no midterm",
+    "no final",
+    "low quizzes",
+    "artistic perspective",
+    "immersion: creative writing",
+    "writing intensive"
+  ]
 },
 {
   id: 2,
@@ -62,9 +74,18 @@ const courses = [
   id: 8,
   code: "PSYC101",
   title: "Introduction to Psychology",
-  summary:
-    "A survey of basic concepts, theories, and research methods in psychology. Topics include neuroscience, sensation and perception, learning, memory, cognition, motivation, emotion, personality, psychological disorders, therapy, and social psychology. Includes lectures, experimental labs, discussions, quizzes, assignments, oral presentation, midterm, and final exam.\n---\nGrading: 15% SmartBook assignments (5), 25% quizzes (5), 10% in-class activities (5), 5% oral presentation, 20% midterm, 25% final exam.",
-  tags: ["science", "social perspective"]
+  summary: "This course provides a survey of the field of psychology, covering basic concepts, theories, and research methods. Topics include neuroscience and behavior, sensation and perception, learning, memory, intelligence, motivation, personality, psychological disorders, therapy, and social psychology. Students develop critical thinking skills and explore major debates in psychology. Coursework includes SmartBook assignments, quizzes, in-class activities, an oral presentation, two midterm exams, and a final exam.\n---\nGrading: 15% SmartBook assignments (5), 20% quizzes (4), 10% in-class assignments (5), 10% oral presentation, 30% midterm exams (2), 15% final exam.",
+  tags: [
+    "psychology",
+    "behavior",
+    "cognition",
+    "mental health",
+    "social psychology",
+    "neuroscience",
+    "immersion: psychology",
+    "social perspective",
+    "science principles (non-lab science)"
+  ]
 },
 {
   id: 9,
@@ -240,7 +261,7 @@ const courses = [
   title: "Beginning French I",
   summary:
     "First in a two-course sequence for students with no prior exposure to French. Focuses on developing proficiency in speaking, listening, reading, and writing, with an emphasis on oral communication and contemporary culture in French-speaking countries. Students practice grammar, vocabulary, and cultural competence through lectures, activities, homework, quizzes, presentations, a midterm, and a final exam.\n---\nGrading: 10% homework (4), 20% quizzes (2), 20% presentations (2), 20% midterm, 30% final exam.",
-  tags: ["language", "communication", "culture", "oral proficiency", "global perspective"]
+  tags: ["language", "communication", "culture", "oral proficiency", "global perspective", "immersion: french language culture "]
 },
 {
   id: 31,
@@ -262,17 +283,33 @@ const courses = [
   id: 33,
   code: "STAT145",
   title: "Introduction to Statistics I",
-  summary:
-    "Introduces statistical methods for extracting meaning from data and basic inferential statistics. Topics include data integrity, exploratory data analysis, data visualization, summary measures, normal and sampling distributions, confidence intervals, and hypothesis testing. Emphasizes statistical thinking and the use of software. Assessment includes homework, quizzes, a project and presentation, a midterm exam, and a comprehensive final exam.\n---\nGrading: 10% homework (5), 20% quizzes (4), 15% project, 5% project presentation, 20% midterm exam, 30% final exam.",
-  tags: ["data", "inference", "visualization", "software", "quantitative"]
+  summary: "This course introduces statistical methods for extracting meaning from data and basic inferential statistics. Topics include data integrity, exploratory data analysis, data visualization, summary measures, the normal distribution, sampling distributions, confidence intervals, and hypothesis testing. Emphasis is on statistical thinking rather than computation, with extensive use of Excel. Coursework includes homework, quizzes, two midterm exams, and a final exam.\n---\nGrading: 20% homework (4), 20% quizzes (4), 15% midterm exam I, 15% midterm exam II, 30% final exam.",
+  tags: [
+    "statistics",
+    "data analysis",
+    "probability",
+    "hypothesis testing",
+    "confidence intervals",
+    "Excel",
+    "immersion: psychology"
+
+  ]
 },
 {
   id: 34,
   code: "STAT146",
   title: "Introduction to Statistics II",
-  summary:
-    "Elementary introduction to regression and analysis of variance, with a focus on business applications. Topics include confidence intervals, hypothesis testing, ANOVA, chi-square tests, regression analysis, and correlation. Emphasizes statistical thinking, data analysis, and the use of statistical software. Assessment includes quizzes, homework, two midterm exams, and a comprehensive final exam.\n---\nGrading: 20% quizzes (4), 20% homework (4), 15% midterm exam I, 15% midterm exam II, 30% final exam.",
-  tags: ["regression", "ANOVA", "business", "software", "data analysis"]
+  summary: "This course builds on introductory statistics with a focus on regression and analysis of variance (ANOVA). Students learn hypothesis testing, one- and two-factor ANOVA, chi-square tests, and regression analysis. Emphasis is on business applications, with use of Minitab and Excel. Coursework includes quizzes, homework, two midterm exams, and a final exam.\n---\nGrading: 20% quizzes (4), 20% homework (4), 15% midterm exam I, 15% midterm exam II, 30% final exam.",
+  tags: [
+    "statistics",
+    "ANOVA",
+    "regression",
+    "data analysis",
+    "business applications",
+    "Minitab",
+    "Excel",
+    "immersion: psychology"
+  ]
 },
 {
   id: 35,
@@ -486,9 +523,18 @@ const courses = [
   id: 61,
   code: "ECON101",
   title: "Principles of Microeconomics",
-  summary:
-    "Studies the workings of individual markets, examining the interaction of demanders and suppliers, and how consumer and producer behavior, as well as market competition, influence market outcomes. Topics include opportunity cost, supply and demand, elasticity, economic surplus, efficiency, international trade, protectionism, costs, and market structures. Assessment includes multiple assignments and quizzes, two midterm tests, and a comprehensive final exam.\n---\nGrading: 25% assignments & quizzes, 20% midterm test 1, 20% midterm test 2, 35% final exam.",
-  tags: ["markets", "trade", "efficiency", "global perspective", "social perspective"]
+  summary: "This course studies the workings of individual markets, focusing on the interaction of demanders and suppliers. Topics include opportunity cost, supply and demand, elasticity, consumer and producer surplus, efficiency, international trade, costs of production, and market structures such as perfect competition, monopoly, monopolistic competition, and oligopoly. Coursework includes homework, quizzes, two midterm tests, and a final exam.\n---\nGrading: 25% homework and quizzes, 20% midterm test 1, 20% midterm test 2, 35% final exam.",
+  tags: [
+    "economics",
+    "microeconomics",
+    "markets",
+    "supply and demand",
+    "elasticity",
+    "trade",
+    "market structures",
+    "global perspective",
+    "social perspective"
+  ]
 },
 {
   id: 62,
@@ -960,7 +1006,7 @@ const courses = [
   id: 118,
   code: "ANTH275",
   title: "Global Islam",
-  summary: "This course examines the spread of Islam beyond its Middle Eastern origins, exploring cultural, social, and political encounters across diverse regions. Students analyze Islamic beliefs, practices, and historical narratives, with a focus on how Muslim identities are expressed in different cultural contexts. Special attention is given to the UAE as a case study of global Islamic diversity. Coursework includes three midterm exams and a final research presentation.\n---\nGrading: 25% midterm I, 25% midterm II, 25% midterm III, 25% final research presentation.",
+  summary: "This course examines the spread of Islam beyond its Middle Eastern origins, exploring cultural, social, and political encounters across diverse regions. Students analyze Islamic beliefs, practices, and historical narratives, with a focus on how Muslim identities are expressed in different cultural contexts. Special attention is given to the UAE as a case study of global Islamic diversity. Coursework includes three midterm exams and a final research presentation.\n---\nGrading: 20% quizzes (4), 20% midterm, 15% research proposal, 15% final research presentation, and 30% final exam.",
   tags: [
     "religion",
     "Islam",
@@ -968,7 +1014,6 @@ const courses = [
     "culture",
     "history",
     "UAE",
-    "no final",
     "global perspective",
     "islamic culture course",
     "immersion: cultural anthropology",
@@ -994,7 +1039,7 @@ const courses = [
   ]
 },
 {
-  id: "120",
+  id: 120,
   code: "CSEC310",
   title: "Endpoint Security Engineering",
   summary: "This course covers defensive cybersecurity measures for protecting computing endpoints. Students study vulnerabilities, threats, and defensive strategies, and apply host-based controls through hands-on labs. Topics include threat actor behaviors, SIEM, MITRE ATT&CK, threat hunting, vulnerability lifecycle, and endpoint detection and response (EDR). Coursework includes quizzes, labs, a project presentation, a midterm exam, and a practical exam.\n---\nGrading: 30% project/presentation, 20% quizzes (4), 20% midterm exam, 20% labs (4), 10% practical exam.",
@@ -1006,7 +1051,276 @@ const courses = [
     "practical exam",
     "project-based",
   ]
-}
+},
+{
+  id: 121,
+  code: "ACCT110",
+  title: "Financial Accounting",
+  summary: "This course introduces the principles of financial accounting and how corporations report their financial performance to stakeholders. Students learn the accounting cycle, GAAP, and analytical tools to interpret financial statements. Topics include balance sheets, income statements, cash flows, and financial ratios. Coursework includes quizzes, homework assignments, a case study project, a midterm exam, and a final exam.\n---\nGrading: 20% final exam, 20% midterm exam, 20% quizzes (4), 20% homework assignments (4), 20% case study project.",
+  tags: [
+    "accounting",
+    "financial statements",
+    "business",
+    "GAAP",
+    "ratios",
+    ]
+},
+{
+  id: 122,
+  code: "PSYC234",
+  title: "Industrial/Organizational Psychology",
+  summary: "This course applies psychological principles to workplace settings, focusing on recruitment, selection, training, motivation, leadership, teamwork, and job performance. Students explore theories and research in I/O psychology and apply them to practical organizational problems. Coursework includes quizzes, a group presentation, an applied psychometric exercise, a midterm exam, and a final research paper with presentation.\n---\nGrading: 10% quiz 1, 10% quiz 2, 10% group presentation, 25% midterm exam, 15% applied psychometric exercise, 30% research paper and presentation.",
+  tags: [
+    "psychology",
+    "industrial psychology",
+    "organizational psychology",
+    "workplace",
+    "leadership",
+    "research",
+    "no final",
+    "immersion: psychology"
+  ]
+},
+{
+  id: 123,
+  code: "MGMT101",
+  title: "Business I",
+  summary: "This is the first course in a two-course sequence introducing students to the key functional areas of business. Students explore current factors, events, and trends that impact business, while developing leadership, communication, and teamwork skills. The course emphasizes critical analysis, case studies, and the business plan process. Coursework includes quizzes, a midterm assessment, a group business project, and a final assessment.\n---\nGrading: 15% quizzes/readings/exercises, 30% midterm assessment, 25% group business project, 30% final assessment.",
+  tags: [
+    "business",
+    "management",
+    "leadership",
+    "teamwork",
+    "communication",
+    "entrepreneurship",
+  ]
+},
+{
+  id: 124,
+  code: "INTB225",
+  title: "Global Business Environment",
+  summary: "This course introduces students to the interdependent relationships between organizations and the global business environment. It examines economic, political, legal, cultural, and technological systems that shape globalization. Students engage with case studies, discussions, and projects to analyze global risks and international business practices. Coursework includes quizzes, reading assignments, case studies, an infographic poster presentation, the X-Culture project, and a final exam.\n---\nGrading: 10% quizzes (10 out of 11), 5% reading assignments, 10% case studies (10), 25% infographic poster presentation, 20% X-Culture project, 30% final exam.",
+  tags: [
+    "international business",
+    "globalization",
+    "economics",
+    "politics",
+    "culture",
+    "global risks",
+    "management",
+    "general education elective"
+
+  ]
+},
+
+{
+  id: 125,
+  code: "MATH161",
+  title: "Applied Calculus",
+  summary: "This course introduces differential and integral calculus with applications in business, management, life sciences, and social sciences. Topics include functions, limits, continuity, derivatives, applications of derivatives, integrals, the fundamental theorem of calculus, exponential and logarithmic functions, differential equations, and geometric series. Coursework includes homework, classwork, quizzes, a midterm exam, and a final exam.\n---\nGrading: 15% homework assignments (4), 15% classwork assignments (4), 20% quizzes (4), 20% midterm exam, 30% final exam.",
+  tags: [
+    "mathematics",
+    "calculus",
+    "applied math",
+    "business applications",
+    "life sciences",
+    "integration",
+    "differentiation"
+  ]
+},
+{
+  id: 126,
+  code: "MGMT102",
+  title: "Business II: Business Planning and Professional Development",
+  summary: "This course, the second in the First-Year Business Experience, applies business and technology tools to create a modified business plan. Students use the Business Model Canvas and Value Proposition Canvas to identify and communicate the nine key elements of a business model. The course emphasizes teamwork, design thinking, and professional development through guest speakers and mentoring. Coursework includes quizzes, exercises, case studies, two midterm exams, a business plan project, and a pitch to investors.\n---\nGrading: 10% quizzes (5), 15% in-class/homework exercises, 10% case studies (2), 30% midterm exams (2), 20% pitch to investors, 15% business plan project.",
+  tags: [
+    "business",
+    "entrepreneurship",
+    "business planning",
+    "innovation",
+    "teamwork",
+    "professional development"
+  ]
+},
+{
+  id: 127,
+  code: "MGMT215",
+  title: "Organizational Behavior",
+  summary: "This course introduces the study of human behavior in organizations at the individual, group, and organizational levels. Topics include motivation, leadership, communication, teamwork, conflict resolution, organizational culture, and change. Students analyze organizational behavior concepts and apply them to real-world cases and team projects. Coursework includes individual and team case studies, a team assignment, a team presentation, a midterm exam, and an end-term exam.\n---\nGrading: 10% individual case study, 10% team case study, 25% team assignment, 15% team presentation, 20% midterm exam, 20% end-term exam.",
+  tags: [
+    "business",
+    "management",
+    "organizational behavior",
+    "leadership",
+    "teamwork",
+    "communication",
+    "culture"
+  ]
+},
+{
+  id: 128,
+  code: "MKTG230",
+  title: "Principles of Marketing",
+  summary: "This course introduces the field of marketing and its role in organizations and society. Students learn how to identify customer needs and satisfy them through the marketing mix of product, price, promotion, and distribution. Topics include consumer behavior, marketing strategy, digital marketing, and sustainable marketing. Coursework includes a marketing simulation, a personal marketing plan, a project, a midterm exam, and a final exam.\n---\nGrading: 20% marketing simulation, 20% personal marketing plan, 20% project, 20% midterm exam, 20% final exam.",
+  tags: [
+    "marketing",
+    "business",
+    "consumer behavior",
+    "strategy",
+    "digital marketing",
+    "sustainability"
+  ]
+},
+{
+  id: 129,
+  code: "PSYC301",
+  title: "Junior Seminar",
+  summary: "This professional development course prepares psychology majors for co-ops, graduate school, and careers. Students learn to identify career goals, write CVs and cover letters, build LinkedIn profiles, network, and prepare for interviews. The course emphasizes self-branding, design thinking, and innovation in career planning. Coursework includes projects, homework assignments, in-class assignments, and a presentation with a mock interview.\n---\nGrading: 20% project (2 parts), 15% homework assignment 1 (job descriptions), 15% homework assignment 2 (CV), 10% in-class CV review, 10% in-class LinkedIn review, 10% in-class ethics/professional behavior, 20% presentation (elevator pitch & mock interview).",
+  tags: [
+    "psychology",
+    "career development",
+    "professional skills",
+    "communication",
+    "innovation",
+    "self-branding"
+  ]
+},
+{
+  id: 130,
+  code: "PSYC411",
+  title: "Psychopharmacology",
+  summary: "This course introduces the study of psychoactive drugs, including their pharmacokinetics, pharmacodynamics, mechanisms of action, and behavioral and cognitive effects. Topics include synaptic transmission, drugs of abuse, and drugs used in the treatment of mental disorders. Students critically evaluate the effects of drugs on the brain and behavior. Coursework includes quizzes, assignments, a midterm exam, a term paper, a group presentation, and a final exam.\n---\nGrading: 20% quizzes (4), 10% assignments (2), 20% midterm exam, 20% term paper, 10% group presentation, 20% final exam.",
+  tags: [
+    "psychology",
+    "psychopharmacology",
+    "neuroscience",
+    "drugs",
+    "addiction",
+    "mental health"
+  ]
+},
+{
+  id: 131,
+  code: "MGIS130",
+  title: "Information Systems & Technology",
+  summary: "This course introduces the field of management information systems (MIS), focusing on the role of information and technology in business processes. Students learn about systems thinking, data management, business intelligence, and approaches to systems development. Coursework includes reading assignments, quizzes, case studies, a team video project, a midterm exam, and a final exam.\n---\nGrading: 10% reading homework assignments (5), 10% quizzes (2), 10% team video assignment, 20% case studies (2), 20% midterm exam, 30% final exam.",
+  tags: [
+    "information systems",
+    "technology",
+    "data management",
+    "business intelligence",
+    "systems thinking",
+    "MIS"
+  ]
+},
+{
+  id: 132,
+  code: "ACCT210",
+  title: "Management Accounting",
+  summary: "This course introduces the use of accounting information by managers for planning, controlling operations, evaluating performance, and decision-making. Students learn cost analysis, activity-based costing, budgeting, and strategic applications of management accounting. Coursework includes assignments, quizzes, a group simulation project, a midterm exam, and a final exam.\n---\nGrading: 25% assignment, 25% group project (simulation), 10% quizzes (2), 20% midterm exam, 20% final exam.",
+  tags: [
+    "accounting",
+    "management accounting",
+    "cost analysis",
+    "budgeting",
+    "decision making",
+    "business"
+  ]
+},
+{
+  id: 133,
+  code: "MECE310",
+  title: "Heat Transfer",
+  summary: "This course covers the fundamentals of heat transfer by conduction, convection, and radiation, with applications to engineering systems. Topics include steady-state and transient conduction, radiation exchange, convection correlations, and heat exchanger analysis using LMTD and NTU methods. Coursework includes homework, classwork/quizzes, a midterm exam, and a final exam.\n---\nGrading: 20% homework, 20% classwork/quizzes, 20% midterm exam, 40% final exam.",
+  tags: [
+    "mechanical engineering",
+    "heat transfer",
+    "conduction",
+    "convection",
+    "radiation",
+    "heat exchangers",
+    "energy systems"
+  ]
+},
+{
+  id: 134,
+  code: "MECE305",
+  title: "Materials Science and Applications",
+  summary: "This course provides an overview of the structure, properties, and processing of metals, polymers, and ceramics, with emphasis on steels and non-ferrous materials. Students learn about strengthening mechanisms, phase diagrams, diffusion, and material selection for engineering applications. Coursework includes homework, quizzes/classwork, a project, two midterm exams, and a final exam.\n---\nGrading: 5% homework, 10% quizzes/classwork, 15% final project, 20% midterm exam 1, 20% midterm exam 2, 30% final exam.",
+  tags: [
+    "mechanical engineering",
+    "materials science",
+    "metals",
+    "polymers",
+    "ceramics",
+    "phase diagrams",
+    "material selection"
+  ]
+},
+{
+  id: 135,
+  code: "MECE355",
+  title: "Fluid Mechanics II",
+  summary: "This is the second course in fluid mechanics, focusing on advanced concepts such as the Navier-Stokes equations, boundary layer theory, potential flow, compressible flow, and an introduction to computational fluid dynamics (CFD). Emphasis is placed on mathematical formulation, analytical solutions, and engineering applications. Students also gain experience with CFD software to simulate real-world fluid flow problems. Coursework includes homework, quizzes, two midterm exams, a CFD project, and a final exam.\n---\nGrading: 20% midterm exam 1, 20% midterm exam 2, 30% final exam, 5% CFD project, 15% quizzes, 10% homework assignments.",
+  tags: [
+    "mechanical engineering",
+    "fluid mechanics",
+    "Navier-Stokes",
+    "boundary layer",
+    "potential flow",
+    "compressible flow",
+    "CFD"
+  ]
+},
+{
+  id: 136,
+  code: "HIST402",
+  title: "Special Seminar in History [Early Islamic History]",
+  summary: "An upper-level writing-intensive seminar focusing on the early history of the Islamic world (600–750 CE). Topics include pre-Islamic Arabia, the Prophet’s biography, the Rashidun Caliphate, and the Umayyad dynasty. Students critically engage with Islamic historiography, primary and secondary sources, and analyze the political, cultural, and social dynamics of early Islamic empires. Coursework includes quizzes, a midterm, a research proposal, a final research presentation, and a final exam.\n---\nGrading: 20% quizzes (4), 20% midterm, 15% research proposal, 15% final research presentation, 30% final exam.",
+  tags: [
+    "history",
+    "islamic history",
+    "early islam",
+    "caliphates",
+    "upper-level",
+    "islamic culture",
+    "immersion: history",
+
+  ]
+},
+{
+  id: 137,
+  code: "ISTE99",
+  title: "SoI Second Year Seminar",
+  summary: "A seminar designed to prepare second-year students for co-op, career planning, and professional development. Students establish career goals, create application materials (resume, cover letter, LinkedIn profile, introduction video), and practice interview skills. The course also emphasizes professional communication, workplace ethics, and creative problem-solving through design thinking. Coursework includes five mandatory assignments, a group case study, and an ethics assignment. Graded on a satisfactory/unsatisfactory basis.\n---\nGrading: 25% CV, 20% LinkedIn profile, 20% interview, 20% case study (group work), 15% ethics assignment.",
+  tags: [
+    "career development",
+    "professional skills",
+    "resume",
+    "linkedin",
+    "interview skills",
+    "design thinking",
+    "ethics",
+    "no midterm",
+    "no final",
+  ]
+},
+{
+  id: 138,
+  code: "NSSA220",
+  title: "Task Automation Using Interpretive Languages",
+  summary: "An introduction to Linux and scripting in high-level and shell languages. Students learn Linux commands, Bash scripting, Python programming, and automation frameworks. Topics include control structures, data processing, system administration, and web scraping. Coursework includes programming assignments, a team project, a midterm, and a final exam.\n---\nGrading: 30% programming assignments (4), 15% project, 25% midterm exam, 30% final exam.",
+  tags: [
+    "computing",
+    "linux",
+    "bash scripting",
+    "python",
+    "automation",
+    "system administration"
+  ]
+},
+
+
 
 
 ];

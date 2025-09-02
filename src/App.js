@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import "./App.css";
 import { stemmer } from "porter-stemmer";
 import {
@@ -8,7 +8,9 @@ import {
   FaCoffee,
   FaClock,
   FaChevronDown,
-  FaArrowUp,
+  // FaArrowUp, // commented out: no longer used
+  FaArrowLeft,
+  FaArrowRight,
 } from "react-icons/fa";
 import Papa from "papaparse";
 
@@ -181,7 +183,7 @@ const TAG_SYNONYMS = {
   "global perspective": ["glb"],
   "artistic perspective": ["art"],
   "ethical perspective": ["eth"],
-  "social perspective": ["soc"],
+  "social perspective": ["soc"],  
   "science principles (non-lab science)": ["sciprin","SciPrin (Bus,ME)"],
   "lab science": ["labsci", "LabSci(CSec)"],
   "natural science principle": ["natsci",""],
@@ -202,7 +204,7 @@ const TAG_SYNONYMS = {
   "literature and media": ["lit"],
   mathematics: ["math"],
   philosophy: ["phil"],
-  psychology: ["psyc"],
+  psychology: ["psyc", "psychology immersion", "imm: psychology"],
   "religious studies": ["rel"],
 
   // new MAJOR ELECTIVES
@@ -373,29 +375,29 @@ function tokenize(text) {
     .map((word) => stemmer(word));
 }
 
-function fuzzyTermFrequency(queryTokens, vocab) {
-  const tf = Array(vocab.length).fill(0);
-  queryTokens.forEach((qToken) => {
-    vocab.forEach((vToken, idx) => {
-      if (vToken.startsWith(qToken)) {
-        tf[idx] += 1;
-      }
-    });
-  });
-  return tf;
-}
+// function fuzzyTermFrequency(queryTokens, vocab) {
+//   const tf = Array(vocab.length).fill(0);
+//   queryTokens.forEach((qToken) => {
+//     vocab.forEach((vToken, idx) => {
+//       if (vToken.startsWith(qToken)) {
+//         tf[idx] += 1;
+//       }
+//     });
+//   });
+//   return tf;
+// }
 
-function tfidfVector(tf, idf) {
-  return tf.map((t, i) => t * idf[i]);
-}
+// function tfidfVector(tf, idf) {
+//   return tf.map((t, i) => t * idf[i]);
+// }
 
-function cosineSimilarity(a, b) {
-  const dot = a.reduce((sum, v, i) => sum + v * b[i], 0);
-  const normA = Math.sqrt(a.reduce((sum, v) => sum + v * v, 0));
-  const normB = Math.sqrt(b.reduce((sum, v) => sum + v * v, 0));
-  if (normA === 0 || normB === 0) return 0;
-  return dot / (normA * normB);
-}
+// function cosineSimilarity(a, b) {
+//   const dot = a.reduce((sum, v, i) => sum + v * b[i], 0);
+//   const normA = Math.sqrt(a.reduce((sum, v) => sum + v * v, 0));
+//   const normB = Math.sqrt(b.reduce((sum, v) => sum + v * v, 0));
+//   if (normA === 0 || normB === 0) return 0;
+//   return dot / (normA * normB);
+// }
 
 function stemCode(code) {
   return code.toLowerCase().replace(/[^a-z]/g, "");
@@ -425,26 +427,29 @@ function extractQuizCount(summary) {
   return 0;
 }
 
-function highlightText(text, queryTokens, requiredTags = []) {
-  const allTokens = [...queryTokens, ...requiredTags.map(normalizeTag)];
+function highlightText(text, queryWords = [], requiredTags = []) {
+  // Use raw query words (not stemmed) for highlighting
+  const allTokens = [
+    ...queryWords.map((w) => w.toLowerCase()),
+    ...requiredTags.map((t) => t.toLowerCase()),
+  ].filter(Boolean);
+
   if (!allTokens.length) return text;
-  const words = text.split(/(\W+)/);
+
+  const words = text.split(/(\W+)/); // split into words + punctuation
+
   return words.map((word, i) => {
-    const stemmed = stemmer(word.toLowerCase().replace(/[^a-z]/g, ""));
-    // Use Levenshtein distance for loose matching
-    const isClose = allTokens.some(
-      (token) =>
-        levenshtein(stemmed, token) <= (stemmed.length <= 4 ? 1 : 2) &&
-        /[a-z]/i.test(word)
+    const lower = word.toLowerCase();
+    const isMatch = allTokens.some((token) => 
+      token && lower.includes(token) // substring match
     );
-    if (isClose) {
-      return (
-        <span className="highlight" key={i}>
-          {word}
-        </span>
-      );
-    }
-    return word;
+    return isMatch ? (
+      <span className="highlight" key={i}>
+        {word}
+      </span>
+    ) : (
+      word
+    );
   });
 }
 
@@ -584,10 +589,17 @@ const SHEET_ID = "1UUjSCTgCK7yZLvlrwwoZ2341K9aCwiYMiR7Qs8fegRA";
 const SHEET_GID_FALL2025 = "672481223";
 const SHEET_GID_SPRING2026 = "1605186669";
 
+// NEW: origins to preconnect/dns-prefetch (keep ≤ 4)
+const PRECONNECT_ORIGINS = [
+  "https://docs.google.com",
+  "https://doc-0g-10-sheets.googleusercontent.com",
+  "https://www.gstatic.com",
+];
+
 // Accept gid as argument
 async function fetchGoogleSheet(gid) {
   const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
-  console.log("🔗 Fetching URL:", url);
+  // console.log("🔗 Fetching URL:", url);
 
   try {
     const res = await fetch(url);
@@ -635,7 +647,7 @@ async function fetchGoogleSheet(gid) {
 
     if (!headerRow) {
       console.error("❌ Could not find header row in sheet");
-      console.log("First 5 rows:", rows.slice(0, 5));
+      // console.log("First 5 rows:", rows.slice(0, 5));
       return [];
     }
 
@@ -649,7 +661,7 @@ async function fetchGoogleSheet(gid) {
         .replace(/[^a-z0-9]/g, "")
     );
 
-    console.log("📌 Normalized headers:", headers);
+    // console.log("📌 Normalized headers:", headers);
 
     // Data rows
     const dataRows = rows.slice(headerRowIndex + 1);
@@ -663,9 +675,10 @@ async function fetchGoogleSheet(gid) {
       return obj;
     });
 
-    console.log(`✅ Found ${objects.length} rows`);
+    // console.log(`✅ Found ${objects.length} rows`);
+    // console.log(`✅ Found ${objects.length} rows`);
     if (objects.length > 0) {
-      console.log("✅ Sample row:", objects[0]);
+      // console.log("✅ Sample row:", objects[0]);
     }
 
     return objects;
@@ -706,9 +719,9 @@ function getSectionsForCourse(course, sheetData) {
     return sheetCodeNorm === courseCodeNorm;
   });
 
-  console.log(
-    `🔎 Looking for ${course.code}, found ${matches.length} sections`
-  );
+  // console.log(
+  //   `🔎 Looking for ${course.code}, found ${matches.length} sections`
+  // );
 
   return matches;
 }
@@ -718,11 +731,11 @@ function App() {
   const [results, setResults] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [searchHistory, setSearchHistory] = useState([]);
-  const [tfidfData, setTfidfData] = useState({
-    vocab: [],
-    idf: [],
-    courseVectors: [],
-  });
+  // const [tfidfData, setTfidfData] = useState({
+  //   vocab: [],
+  //   idf: [],
+  //   courseVectors: [],
+  // });
   const [courses, setCourses] = useState([]);
   const [noResultsVariation, setNoResultsVariation] = useState("");
   const [showDisclaimer, setShowDisclaimer] = useState(false);
@@ -741,7 +754,7 @@ function App() {
   const dropdownRef = useRef(null);
 
   // NEW: Back to Top visibility state
-  const [showBackToTop, setShowBackToTop] = useState(false);
+  // const [showBackToTop, setShowBackToTop] = useState(false);
 
   // NEW: Selected course for sections popup
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -758,18 +771,6 @@ function App() {
 
     return () => clearTimeout(timer);
   }, []);
-
-  // Optional: If user dismisses, show again after another 30 minutes
-  useEffect(() => {
-    let timer;
-    if (!showRefreshReminder) {
-      timer = setTimeout(() => {
-        setShowRefreshReminder(true);
-      }, 1800000);
-    }
-    return () => timer && clearTimeout(timer);
-  }, [showRefreshReminder]);
-
   // Lock background scroll for ANY modal popup
   useEffect(() => {
     const modalOpen =
@@ -787,21 +788,97 @@ function App() {
     };
   }, [showDisclaimer, showTips, showTipPopup, selectedCourse]);
 
-  // NEW: Store both semesters' sheet data
+  // NEW: track lazy sheet loading + errors
   const [sheetDataFall, setSheetDataFall] = useState([]);
   const [sheetDataSpring, setSheetDataSpring] = useState([]);
-  // NEW: Track selected semester in modal
   const [selectedSemester, setSelectedSemester] = useState("fall");
+  const [isLoadingSheet, setIsLoadingSheet] = useState(false);
+  const [sheetError, setSheetError] = useState(null);
+  const loadingRef = useRef({ fall: false, spring: false });
 
-  // Fetch both sheets on mount
+  // NEW: Add resource hints + preload early
   useEffect(() => {
-    fetchGoogleSheet(SHEET_GID_FALL2025).then((data) => {
-      setSheetDataFall(data || []);
-    });
-    fetchGoogleSheet(SHEET_GID_SPRING2026).then((data) => {
-      setSheetDataSpring(data || []);
-    });
+    try {
+      const head = document.head;
+      PRECONNECT_ORIGINS.forEach((origin) => {
+        const pre = document.createElement("link");
+        pre.rel = "preconnect";
+        pre.href = origin;
+        pre.crossOrigin = "anonymous";
+        head.appendChild(pre);
+
+        const dns = document.createElement("link");
+        dns.rel = "dns-prefetch";
+        dns.href = origin;
+        head.appendChild(dns);
+      });
+
+      const preloadCourses = document.createElement("link");
+      preloadCourses.rel = "preload";
+      preloadCourses.as = "fetch";
+      preloadCourses.href = "/courses.json";
+      preloadCourses.crossOrigin = "anonymous";
+      head.appendChild(preloadCourses);
+    } catch {}
   }, []);
+
+  // NEW: Register a lightweight service worker for caching
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
+  }, []);
+
+  // NOTE: Removed eager Google Sheets fetch on mount.
+  // Old code:
+  // useEffect(() => {
+  //   fetchGoogleSheet(SHEET_GID_FALL2025).then(setSheetDataFall);
+  //   fetchGoogleSheet(SHEET_GID_SPRING2026).then(setSheetDataSpring);
+  // }, []);
+
+  // NEW: Lazy loader for a semester's sheet (memoized)
+  const loadSheet = useCallback(async (semester) => {
+    if (loadingRef.current[semester]) return;
+    if (semester === "fall" && sheetDataFall.length > 0) return;
+    if (semester === "spring" && sheetDataSpring.length > 0) return;
+
+    loadingRef.current[semester] = true;
+    setIsLoadingSheet(true);
+    setSheetError(null);
+    try {
+      const gid = semester === "fall" ? SHEET_GID_FALL2025 : SHEET_GID_SPRING2026;
+      const data = await fetchGoogleSheet(gid);
+      if (semester === "fall") setSheetDataFall(data || []);
+      else setSheetDataSpring(data || []);
+    } catch (e) {
+      setSheetError("Failed to load sections.");
+    } finally {
+      setIsLoadingSheet(false);
+      loadingRef.current[semester] = false;
+    }
+  }, [sheetDataFall.length, sheetDataSpring.length]);
+
+  // NEW: On modal open or tab switch, ensure the needed semester is loaded
+  useEffect(() => {
+    if (selectedCourse) {
+      loadSheet(selectedSemester);
+    }
+  }, [selectedCourse, selectedSemester, loadSheet]);
+
+  // NEW: Opportunistically prefetch Fall sheet when the browser is idle
+  useEffect(() => {
+    const idleId =
+      "requestIdleCallback" in window
+        ? window.requestIdleCallback(() => loadSheet("fall"))
+        : setTimeout(() => loadSheet("fall"), 1500);
+    return () => {
+      if ("cancelIdleCallback" in window) {
+        window.cancelIdleCallback(idleId);
+      } else {
+        clearTimeout(idleId);
+      }
+    };
+  }, [loadSheet]);
 
   useEffect(() => {
     if (!localStorage.getItem("coursalogDisclaimerAgreed")) {
@@ -815,13 +892,12 @@ function App() {
   };
 
   useEffect(() => {
-    Promise.all([
-      fetch("/courses.json").then((res) => res.json()),
-      fetch("/tfidf.json").then((res) => res.json()),
-    ]).then(([coursesData, tfidfData]) => {
-      setCourses(coursesData);
-      setTfidfData(tfidfData);
-    });
+    // Small improvement: allow cache usage for courses.json
+    fetch("/courses.json", { cache: "force-cache" })
+      .then((res) => res.json())
+      .then((coursesData) => {
+        setCourses(coursesData);
+      });
   }, []);
 
   useEffect(() => {
@@ -837,27 +913,21 @@ function App() {
   }, [hasSearched, results]);
 
   // NEW: Track scroll position for Back to Top button
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 300) {
-        setShowBackToTop(true);
-      } else {
-        setShowBackToTop(false);
-      }
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  // useEffect(() => {
+  //   const handleScroll = () => {
+  //     if (window.scrollY > 300) {
+  //       setShowBackToTop(true);
+  //     } else {
+  //       setShowBackToTop(false);
+  //     }
+  //   };
+  //   window.addEventListener("scroll", handleScroll);
+  //   return () => window.removeEventListener("scroll", handleScroll);
+  // }, []);
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    if (document.documentElement) {
-      document.documentElement.scrollTop = 0;
-    }
-    if (document.body) {
-      document.body.scrollTop = 0;
-    }
-  };
+  // const scrollToTop = () => {
+  //   window.scrollTo({ top: 0, behavior: "smooth" });
+  // };
 
   const saveSearchHistory = (q) => {
     if (!q.trim()) return;
@@ -1185,25 +1255,85 @@ function App() {
     }
   }
 
-  // --- TF-IDF fallback ---
-  const queryTokensArr = tokenize(searchTerm);
-  const queryTf = fuzzyTermFrequency(queryTokensArr, tfidfData.vocab);
-  const queryVec = tfidfVector(queryTf, tfidfData.idf);
-  const ranked = courses
-    .map((course, i) => ({
-      ...course,
-      score: cosineSimilarity(queryVec, tfidfData.courseVectors[i]),
-    }))
-    .sort((a, b) => b.score - a.score);
-  const maxScore = ranked.length > 0 ? ranked[0].score : 0;
-  const threshold = 0.2;
-  const filtered = ranked.filter(
-    (c) => c.score > 0 && c.score >= threshold * maxScore
-  );
-  setResults(filtered.length ? filtered : []);
+  // // --- TF-IDF fallback ---
+  // const queryTokensArr = tokenize(searchTerm);
+  // const queryTf = fuzzyTermFrequency(queryTokensArr, tfidfData.vocab);
+  // const queryVec = tfidfVector(queryTf, tfidfData.idf);
+  // const ranked = courses
+  //   .map((course, i) => ({
+  //     ...course,
+  //     score: cosineSimilarity(queryVec, tfidfData.courseVectors[i]),
+  //   }))
+  //   .sort((a, b) => b.score - a.score);
+  // const maxScore = ranked.length > 0 ? ranked[0].score : 0;
+  // const threshold = 0.2;
+  // const filtered = ranked.filter(
+  //   (c) => c.score > 0 && c.score >= threshold * maxScore
+  // );
+  // setResults(filtered.length ? filtered : []);
 };
 
   const isPineapplePizza = query.trim().toLowerCase() === "pineapple on pizza";
+
+  // Pagination state
+  const PAGE_SIZE = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+  // NEW: page input state
+  const [pageInput, setPageInput] = useState("1");
+
+  // Scroll to top when page changes
+  useEffect(() => {
+  if (hasSearched && (results.length > 0 || closestMatches.length > 0)) {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (document.documentElement) {
+      document.documentElement.scrollTop = 0;
+    }
+    if (document.body) {
+      document.body.scrollTop = 0;
+    }
+  }
+}, [currentPage, hasSearched, results.length, closestMatches.length]);
+
+  // Reset page on new search
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [results, closestMatches, hasSearched]);
+
+  // Sync the text input when current page changes
+  useEffect(() => {
+    setPageInput(String(currentPage));
+  }, [currentPage]);
+
+  // Pagination logic
+  const paginatedResults =
+    hasSearched && results.length > 0
+      ? results.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+      : [];
+
+  const paginatedClosest =
+    hasSearched && closestMatches.length > 0
+      ? closestMatches.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+      : [];
+
+  const totalResults = results.length > 0 ? results.length : closestMatches.length;
+  const totalPages = Math.ceil(totalResults / PAGE_SIZE);
+
+  // NEW: helpers to clamp and apply page input
+  const clampPage = (val) => {
+    if (!Number.isFinite(val) || val < 1) return 1;
+    if (val > totalPages) return totalPages;
+    return val;
+  };
+  const applyPageInput = () => {
+    const n = parseInt(pageInput, 10);
+    if (!isNaN(n)) {
+      const clamped = clampPage(n);
+      setCurrentPage(clamped);
+      setPageInput(String(clamped));
+    } else {
+      setPageInput(String(currentPage));
+    }
+  };
 
   return (
     <div className="app">
@@ -1351,7 +1481,7 @@ function App() {
         </div>
       )}
 
-      <div className="starfield"></div>
+      {/* <div className="starfield"></div> */}
       <main>
         <div className="center-vertical">
           <h1
@@ -1527,17 +1657,17 @@ function App() {
               )}
 
             {hasSearched &&
-              (results.length > 0 ? results : closestMatches).map((course) => (
+              (results.length > 0 ? paginatedResults : paginatedClosest).map((course) => (
                 <div className="course-card" key={course.id}>
                   <div
                     className="course-header"
                     onClick={() => setSelectedCourse(course)}
                     style={{ cursor: "pointer" }}
                   >
-                    <span className="course-title">
-                      {highlightText(course.title, tokenize(query))}
-                    </span>
-                    <span className="course-code">{course.code}</span>
+                  <span className="course-title">
+                    {highlightText(course.title, query.split(/\s+/))}
+                  </span>
+                  <span className="course-code">{course.code}</span>
                   </div>
 
                   {course.summary.split("\n---\n").map((part, idx, arr) =>
@@ -1575,12 +1705,95 @@ function App() {
               ))}
           </section>
 
+          {/* --- Pagination Controls --- */}
+          {hasSearched && totalPages > 1 && (
+            <div className="pagination-bar" style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "1.2rem",
+              margin: "2.2rem 0 1.2rem 0",
+              zIndex: 2,
+            }}>
+              <button
+                className="pagination-arrow"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                aria-label="Previous page"
+                style={{
+                  background: "rgba(28,30,56,0.35)",
+                  border: "1.5px solid rgba(157,167,255,0.45)",
+                  color: currentPage === 1 ? "#b7bcf0" : "#b5bdff",
+                  borderRadius: "12px",
+                  padding: "0.6em 1em",
+                  fontSize: "1.1rem",
+                  fontWeight: 800,
+                  cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                  opacity: currentPage === 1 ? 0.5 : 1,
+                  transition: "all 0.2s",
+                  boxShadow: "0 1px 0 rgba(255,255,255,0.04) inset, 0 -1px 0 rgba(0,0,0,0.18) inset",
+                }}
+              >
+                <FaArrowLeft size={18} />
+              </button>
+
+              {/* NEW: Editable page number */}
+              <div className="pagination-page">
+                <span className="pagination-label">Page</span>
+                <input
+                  className="pagination-input"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={pageInput}
+                  onChange={(e) => {
+                    const onlyDigits = e.target.value.replace(/\D/g, "");
+                    setPageInput(onlyDigits);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      applyPageInput();
+                    }
+                  }}
+                  onBlur={applyPageInput}
+                  aria-label="Current page"
+                />
+                <span className="pagination-total">of {totalPages}</span>
+              </div>
+
+              <button
+                className="pagination-arrow"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                aria-label="Next page"
+                style={{
+                  background: "rgba(28,30,56,0.35)",
+                  border: "1.5px solid rgba(157,167,255,0.45)",
+                  color: currentPage === totalPages ? "#b7bcf0" : "#b5bdff",
+                  borderRadius: "12px",
+                  padding: "0.6em 1em",
+                  fontSize: "1.1rem",
+                  fontWeight: 800,
+                  cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                  opacity: currentPage === totalPages ? 0.5 : 1,
+                  transition: "all 0.2s",
+                  boxShadow: "0 1px 0 rgba(255,255,255,0.04) inset, 0 -1px 0 rgba(0,0,0,0.18) inset",
+                }}
+              >
+                <FaArrowRight size={18} />
+              </button>
+            </div>
+          )}
+          {/* --- END Pagination Controls --- */}
+
           {/* --- NEW: Course Sections Popup Modal --- */}
           {selectedCourse && (() => {
-            // Pick correct sheet data based on semester
             const activeSheetData =
               selectedSemester === "fall" ? sheetDataFall : sheetDataSpring;
-            const sections = getSectionsForCourse(selectedCourse, activeSheetData);
+            const sections =
+              activeSheetData && activeSheetData.length > 0
+                ? getSectionsForCourse(selectedCourse, activeSheetData)
+                : [];
 
             return (
               <div
@@ -1611,40 +1824,43 @@ function App() {
                         Spring 2026
                       </button>
                     </div>
+
+                    {/* NEW: Better loading/error/empty states */}
                     <div style={{ marginBottom: "1.2em" }}>
-                      {!activeSheetData || activeSheetData.length === 0 ? (
-                        <p>
-                          Section data unavailable.
-                        </p>
+                      {isLoadingSheet ? (
+                        <p>Loading sections…</p>
+                      ) : sheetError ? (
+                        <p>{sheetError}</p>
+                      ) : !activeSheetData || activeSheetData.length === 0 ? (
+                        <p>Section data unavailable.</p>
                       ) : sections.length === 0 ? (
                         <p>No sections found for this course.</p>
                       ) : (
-<table className="sections-table">
-  <thead>
-    <tr>
-      {/* <th>Attributes</th> */}
-      <th>Section</th>
-      <th>Credits</th>
-      <th>Instructor</th>
-      <th>Days</th>
-      <th>Time</th>
-      <th>Room</th>
-    </tr>
-  </thead>
-  <tbody>
-    {sections.map((s, i) => (
-      <tr key={i}>
-        {/* <td>{s.courseattribute}</td> */}
-        <td>{s.sect}</td>
-        <td>{s.crdt}</td>
-        <td>{s.instructor}</td>
-        <td>{s.days}</td>
-        <td>{formatTimeRange(s.timestart, s.timeend)}</td>
-        <td>{s.room}</td>
-      </tr>
-    ))}
-  </tbody>
-</table>                      )}
+                        <table className="sections-table">
+                          <thead>
+                            <tr>
+                              <th>Section</th>
+                              <th>Credits</th>
+                              <th>Instructor</th>
+                              <th>Days</th>
+                              <th>Time</th>
+                              <th>Room</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sections.map((s, i) => (
+                              <tr key={i}>
+                                <td>{s.sect}</td>
+                                <td>{s.crdt}</td>
+                                <td>{s.instructor}</td>
+                                <td>{s.days}</td>
+                                <td>{formatTimeRange(s.timestart, s.timeend)}</td>
+                                <td>{s.room}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
                     </div>
                   </div>
                   <button className="search-btn" onClick={() => setSelectedCourse(null)}>
@@ -1694,7 +1910,7 @@ function App() {
       </footer>
 
       {/* Back to Top Button (only visible after scroll) */}
-      {showBackToTop && (
+      {/* {showBackToTop && (
         <button
           className="back-to-top"
           onClick={scrollToTop}
@@ -1702,7 +1918,7 @@ function App() {
         >
           <FaArrowUp size={20} />
         </button>
-      )}
+      )} */}
     </div>
   );
 }
