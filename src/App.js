@@ -633,7 +633,7 @@ async function fetchGoogleSheet(gid) {
             cellStr.includes("cat") ||
             cellStr.includes("number") ||
             cellStr.includes("sect") ||
-            cellStr.includes("adam") ||
+            cellStr.includes("instructors") ||
             cellStr.includes("credit") ||
             cellStr.includes("crdt")
           );
@@ -1852,7 +1852,7 @@ function App() {
                               <tr key={i}>
                                 <td>{s.sect}</td>
                                 <td>{s.crdt}</td>
-                                <td>{s.adam}</td>
+                                <td>{s.instructor}</td>
                                 <td>{s.days}</td>
                                 <td>{formatTimeRange(s.timestart, s.timeend)}</td>
                                 <td>{s.room}</td>
