@@ -89,66 +89,69 @@ const ScheduleView = ({
     return colorMap;
   }, [schedule]);
 
-  const handleExport = async () => {
-    if (scheduleRef.current) {
-      const originalDisplay = scheduleRef.current.style.display;
-      const originalWidth = scheduleRef.current.style.width;
+  const captureSchedule = async () => {
+    if (!scheduleRef.current) return null;
 
-      scheduleRef.current.style.display = 'block';
-      scheduleRef.current.style.width = '1000px'; // Force desktop width
+    // Prevent page expansion during capture
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
 
-      try {
-        const canvas = await html2canvas(scheduleRef.current, {
-          backgroundColor: '#0f1327',
-          scale: 2,
-          windowWidth: 1200, // Simulate desktop window
-        });
-        const link = document.createElement('a');
-        link.download = `schedule-${scheduleIndex + 1}.png`;
-        link.href = canvas.toDataURL();
-        link.click();
-      } finally {
-        scheduleRef.current.style.display = originalDisplay;
-        scheduleRef.current.style.width = originalWidth;
-      }
+    // Create a clone to render off-screen (prevents layout shift/animation)
+    const clone = scheduleRef.current.cloneNode(true);
+    clone.style.display = 'block';
+    clone.style.width = '1000px'; // Force desktop width
+    clone.style.position = 'fixed'; // Fixed instead of absolute to prevent page expansion
+    clone.style.left = '-9999px';
+    clone.style.top = '0';
+    clone.style.visibility = 'hidden'; // Hide from view completely
+    clone.style.pointerEvents = 'none'; // Prevent any interaction
+    clone.style.zIndex = '-1000'; // Ensure it's below everything
+    document.body.appendChild(clone);
+
+    try {
+      const canvas = await html2canvas(clone, {
+        backgroundColor: '#0f1327',
+        scale: 2,
+        windowWidth: 1200, // Simulate desktop window
+      });
+      return canvas;
+    } finally {
+      document.body.removeChild(clone);
+      document.body.style.overflow = originalOverflow;
     }
   };
 
+  const handleExport = async () => {
+    const canvas = await captureSchedule();
+    if (!canvas) return;
+
+    const link = document.createElement('a');
+    const name = favoriteName ? favoriteName.replace(/[^a-z0-9_\-\s]/gi, '').trim() : `schedule-${scheduleIndex + 1}`;
+    link.download = `${name}.png`;
+    link.href = canvas.toDataURL();
+    link.click();
+  };
+
   const handleCopy = async () => {
-    if (scheduleRef.current) {
-      const originalDisplay = scheduleRef.current.style.display;
-      const originalWidth = scheduleRef.current.style.width;
+    const canvas = await captureSchedule();
+    if (!canvas) return;
 
-      scheduleRef.current.style.display = 'block';
-      scheduleRef.current.style.width = '1000px'; // Force desktop width
+    try {
+      const dataUrl = canvas.toDataURL('image/png');
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
 
-      try {
-        const canvas = await html2canvas(scheduleRef.current, {
-          backgroundColor: '#0f1327',
-          scale: 2,
-          windowWidth: 1200, // Simulate desktop window
-        });
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'image/png': blob,
+        }),
+      ]);
 
-        // Use toDataURL (same as export) then convert to blob for consistency
-        const dataUrl = canvas.toDataURL('image/png');
-        const response = await fetch(dataUrl);
-        const blob = await response.blob();
-
-        await navigator.clipboard.write([
-          new ClipboardItem({
-            'image/png': blob,
-          }),
-        ]);
-
-        setCopySuccess(true);
-        setTimeout(() => setCopySuccess(false), 2000);
-      } catch (err) {
-        console.error('Failed to copy to clipboard:', err);
-        alert('Failed to copy to clipboard. Please try downloading instead.');
-      } finally {
-        scheduleRef.current.style.display = originalDisplay;
-        scheduleRef.current.style.width = originalWidth;
-      }
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
+      alert('Failed to copy to clipboard. Please try downloading instead.');
     }
   };
 
