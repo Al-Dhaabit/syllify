@@ -11,8 +11,11 @@ import {
   // FaArrowUp, // commented out: no longer used
   FaArrowLeft,
   FaArrowRight,
+  FaCalendarAlt,
+  FaSearch,
 } from "react-icons/fa";
 import Papa from "papaparse";
+import ScheduleInterface from "./components/ScheduleInterface";
 
 const ALL_TAGS = [
   // assessment / course structure
@@ -183,10 +186,10 @@ const TAG_SYNONYMS = {
   "global perspective": ["glb"],
   "artistic perspective": ["art"],
   "ethical perspective": ["eth"],
-  "social perspective": ["soc"],  
-  "science principles (non-lab science)": ["sciprin","SciPrin (Bus,ME)"],
+  "social perspective": ["soc"],
+  "science principles (non-lab science)": ["sciprin", "SciPrin (Bus,ME)"],
   "lab science": ["labsci", "LabSci(CSec)"],
-  "natural science principle": ["natsci",""],
+  "natural science principle": ["natsci", ""],
   immersion: ["imm"],
   "immersion required course option": ["imm*"],
 
@@ -440,7 +443,7 @@ function highlightText(text, queryWords = [], requiredTags = []) {
 
   return words.map((word, i) => {
     const lower = word.toLowerCase();
-    const isMatch = allTokens.some((token) => 
+    const isMatch = allTokens.some((token) =>
       token && lower.includes(token) // substring match
     );
     return isMatch ? (
@@ -629,6 +632,8 @@ async function fetchGoogleSheet(gid) {
             cellStr.includes("subject") ||
             cellStr.includes("subj") ||
             cellStr.includes("course") ||
+            cellStr.includes("code") || // Added 'code'
+            cellStr.includes("id") ||   // Added 'id'
             cellStr.includes("dept") ||
             cellStr.includes("cat") ||
             cellStr.includes("number") ||
@@ -727,9 +732,28 @@ function getSectionsForCourse(course, sheetData) {
 }
 
 function App() {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState([]);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [mode, setMode] = useState(() => {
+    const saved = localStorage.getItem('coursalog_mode');
+    return saved || 'search';
+  }); // 'search' or 'schedule'
+  const [query, setQuery] = useState(() => {
+    try {
+      const saved = localStorage.getItem('coursalog_search_state');
+      return saved ? (JSON.parse(saved).query || "") : "";
+    } catch (e) { return ""; }
+  });
+  const [results, setResults] = useState(() => {
+    try {
+      const saved = localStorage.getItem('coursalog_search_state');
+      return saved ? (JSON.parse(saved).results || []) : [];
+    } catch (e) { return []; }
+  });
+  const [hasSearched, setHasSearched] = useState(() => {
+    try {
+      const saved = localStorage.getItem('coursalog_search_state');
+      return saved ? (JSON.parse(saved).hasSearched || false) : false;
+    } catch (e) { return false; }
+  });
   const [searchHistory, setSearchHistory] = useState([]);
   // const [tfidfData, setTfidfData] = useState({
   //   vocab: [],
@@ -737,10 +761,25 @@ function App() {
   //   courseVectors: [],
   // });
   const [courses, setCourses] = useState([]);
-  const [noResultsVariation, setNoResultsVariation] = useState("");
+  const [noResultsVariation, setNoResultsVariation] = useState(() => {
+    try {
+      const saved = localStorage.getItem('coursalog_search_state');
+      return saved ? (JSON.parse(saved).noResultsVariation || "") : "";
+    } catch (e) { return ""; }
+  });
   const [showDisclaimer, setShowDisclaimer] = useState(false);
-  const [didYouMean, setDidYouMean] = useState("");
-  const [closestMatches, setClosestMatches] = useState([]);
+  const [didYouMean, setDidYouMean] = useState(() => {
+    try {
+      const saved = localStorage.getItem('coursalog_search_state');
+      return saved ? (JSON.parse(saved).didYouMean || "") : "";
+    } catch (e) { return ""; }
+  });
+  const [closestMatches, setClosestMatches] = useState(() => {
+    try {
+      const saved = localStorage.getItem('coursalog_search_state');
+      return saved ? (JSON.parse(saved).closestMatches || []) : [];
+    } catch (e) { return []; }
+  });
 
   const [showTips, setShowTips] = useState(false);
   const handleShowTips = () => setShowTips(true);
@@ -819,13 +858,13 @@ function App() {
       preloadCourses.href = "/courses.json";
       preloadCourses.crossOrigin = "anonymous";
       head.appendChild(preloadCourses);
-    } catch {}
+    } catch { }
   }, []);
 
   // NEW: Register a lightweight service worker for caching
   useEffect(() => {
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
+      navigator.serviceWorker.register("/sw.js").catch(() => { });
     }
   }, []);
 
@@ -859,11 +898,15 @@ function App() {
   }, [sheetDataFall.length, sheetDataSpring.length]);
 
   // NEW: On modal open or tab switch, ensure the needed semester is loaded
+  // Load both semesters when in schedule mode, or selected semester for course popup
   useEffect(() => {
-    if (selectedCourse) {
+    if (mode === "schedule") {
+      loadSheet("fall");
+      loadSheet("spring");
+    } else if (selectedCourse) {
       loadSheet(selectedSemester);
     }
-  }, [selectedCourse, selectedSemester, loadSheet]);
+  }, [selectedCourse, selectedSemester, loadSheet, mode]);
 
   // NEW: Opportunistically prefetch Fall sheet when the browser is idle
   useEffect(() => {
@@ -879,6 +922,41 @@ function App() {
       }
     };
   }, [loadSheet]);
+
+
+
+  // Save search state to localStorage whenever it changes
+  useEffect(() => {
+    const searchState = {
+      query,
+      results,
+      hasSearched,
+      didYouMean,
+      closestMatches,
+      noResultsVariation,
+    };
+    localStorage.setItem('coursalog_search_state', JSON.stringify(searchState));
+  }, [query, results, hasSearched, didYouMean, closestMatches, noResultsVariation]);
+
+  // Save mode to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('coursalog_mode', mode);
+  }, [mode]);
+
+  // Clear active session data on refresh/close
+  useEffect(() => {
+    const handleUnload = () => {
+      // Clear active search state
+      localStorage.removeItem('coursalog_search_state');
+      // Clear active schedule state
+      localStorage.removeItem('coursalog_state');
+      localStorage.removeItem('coursalog_schedule_results');
+      // Clear active mode (optional, but requested "reset everything")
+      localStorage.removeItem('coursalog_mode');
+    };
+    window.addEventListener('beforeunload', handleUnload);
+    return () => window.removeEventListener('beforeunload', handleUnload);
+  }, []);
 
   useEffect(() => {
     if (!localStorage.getItem("coursalogDisclaimerAgreed")) {
@@ -1007,271 +1085,271 @@ function App() {
   }
 
   const doSearch = (overrideQuery) => {
-  setDidYouMean("");
-  setClosestMatches([]);
-  let searchTerm = (overrideQuery ?? query).trim();
-  if (!searchTerm) {
-    setQuery("");
-    setResults([]);
-    setHasSearched(false);
-    return;
-  }
-  const queryLower = searchTerm.toLowerCase();
-  setHasSearched(true);
-  saveSearchHistory(searchTerm);
-
-  const suggestion = findClosestMatch(searchTerm);
-  if (suggestion && suggestion !== searchTerm) {
-    setDidYouMean(suggestion);
-  }
-
-  // Reserved commands
-  if (RESERVED_COMMANDS.has(queryLower) || isCourseCodeQuery(searchTerm)) {
-    if (queryLower === "/all") {
-      setResults(courses);
-      return;
-    } else if (queryLower === "pineapple on pizza") {
+    setDidYouMean("");
+    setClosestMatches([]);
+    let searchTerm = (overrideQuery ?? query).trim();
+    if (!searchTerm) {
+      setQuery("");
       setResults([]);
+      setHasSearched(false);
       return;
     }
-  }
+    const queryLower = searchTerm.toLowerCase();
+    setHasSearched(true);
+    saveSearchHistory(searchTerm);
 
-  // Exact course code match
-  const codeQuery = searchTerm.replace(/\s+/g, "").toUpperCase();
-  const exactMatch = courses.find(
-    (course) => course.code.replace(/\s+/g, "").toUpperCase() === codeQuery
-  );
-  if (exactMatch) {
-    setResults([exactMatch]);
-    return;
-  }
-  if (/^[A-Z]{2,6}$/.test(codeQuery)) {
-    const prefixMatches = courses.filter((course) =>
-      course.code.toUpperCase().startsWith(codeQuery)
+    const suggestion = findClosestMatch(searchTerm);
+    if (suggestion && suggestion !== searchTerm) {
+      setDidYouMean(suggestion);
+    }
+
+    // Reserved commands
+    if (RESERVED_COMMANDS.has(queryLower) || isCourseCodeQuery(searchTerm)) {
+      if (queryLower === "/all") {
+        setResults(courses);
+        return;
+      } else if (queryLower === "pineapple on pizza") {
+        setResults([]);
+        return;
+      }
+    }
+
+    // Exact course code match
+    const codeQuery = searchTerm.replace(/\s+/g, "").toUpperCase();
+    const exactMatch = courses.find(
+      (course) => course.code.replace(/\s+/g, "").toUpperCase() === codeQuery
     );
-    if (prefixMatches.length > 0) {
-      setResults(prefixMatches);
+    if (exactMatch) {
+      setResults([exactMatch]);
       return;
     }
-  }
-
-  // --- NEW: Exact course title match ---
-  const exactTitleMatches = courses.filter(
-    (course) => course.title.trim().toLowerCase() === queryLower
-  );
-  if (exactTitleMatches.length > 0) {
-    setResults(exactTitleMatches);
-    return;
-  }
-
-  // --- Normal search logic ---
-  let requiredTags = [];
-  let queryForKeywords = queryLower;
-
-  // Extract tags
-  const tagPatterns = [];
-  ALL_TAGS.forEach((tag) => {
-    tagPatterns.push({ tag, pattern: tag });
-    if (TAG_SYNONYMS[tag]) {
-      TAG_SYNONYMS[tag].forEach((syn) => {
-        tagPatterns.push({ tag, pattern: syn });
-      });
-    }
-  });
-  tagPatterns.sort((a, b) => b.pattern.length - a.pattern.length);
-
-  tagPatterns.forEach(({ tag, pattern }) => {
-    const regex = new RegExp(
-      `\\b${pattern.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}\\b`,
-      "gi"
-    );
-    if (regex.test(queryForKeywords)) {
-      requiredTags.push(tag);
-      queryForKeywords = queryForKeywords.replace(regex, "");
-    }
-  });
-
-  queryForKeywords = queryForKeywords
-    .replace(
-      /\b(and|or|the|a|an|for|with|to|of|in|on|at|by|from|is|are|was|were|be|been|being|as|it|this|so|do|does|did|not|no|yes|you|your|my|me|we|us|our|course|courses)\b/gi,
-      ""
-    )
-    .replace(/\s+/g, " ")
-    .trim();
-
-  const featureKeywords = queryForKeywords ? tokenize(queryForKeywords) : [];
-  const codeKeywords = featureKeywords.filter((word) =>
-    /^[a-z]{2,5}$/.test(word)
-  );
-
-  let filteredCourses = courses;
-
-  // ✅ Combined AND logic (tags OR text, keywords in text)
-  if (featureKeywords.length > 0 || requiredTags.length > 0) {
-    filteredCourses = filteredCourses.filter((course) => {
-      const text = `${course.title} ${course.summary} ${(course.tags || []).join(
-        " "
-      )}`.toLowerCase();
-
-      // Check all keywords in text
-      const allKeywordsPresent = featureKeywords.every((word) =>
-        text.includes(word.toLowerCase())
+    if (/^[A-Z]{2,6}$/.test(codeQuery)) {
+      const prefixMatches = courses.filter((course) =>
+        course.code.toUpperCase().startsWith(codeQuery)
       );
-
-      // Check all required tags (allow match in tags OR text, with synonyms)
-      const allTagsPresent = requiredTags.every((tag) => {
-        const normalizedRequiredTag = normalizeTag(tag);
-        const normalizedCourseTags = (course.tags || []).map((t) =>
-          normalizeTag(t)
-        );
-
-        if (normalizedCourseTags.includes(normalizedRequiredTag)) return true;
-        if (text.includes(normalizedRequiredTag)) return true;
-        if (TAG_SYNONYMS[tag]) {
-          return TAG_SYNONYMS[tag].some((syn) => {
-            const normSyn = normalizeTag(syn);
-            return (
-              normalizedCourseTags.includes(normSyn) || text.includes(normSyn)
-            );
-          });
-        }
-        return false;
-      });
-
-      return allKeywordsPresent && allTagsPresent;
-    });
-
-    if (requiredTags.includes("low quizzes")) {
-      filteredCourses = filteredCourses
-        .map((course) => ({
-          ...course,
-          quizCount: extractQuizCount(course.summary || ""),
-        }))
-        .sort((a, b) => a.quizCount - b.quizCount);
+      if (prefixMatches.length > 0) {
+        setResults(prefixMatches);
+        return;
+      }
     }
-  }
 
-  // --- Scoring ---
-  if (featureKeywords.length > 0 || codeKeywords.length > 0) {
-    let scoredCourses = filteredCourses.map((course) => {
-      let score = 0;
-      featureKeywords.forEach((kw) => {
-        if (tokenize(course.title).includes(kw)) score += 2;
-        if (tokenize(course.summary).includes(kw)) score += 1;
-        if (tokenize((course.tags || []).join(" ")).includes(kw)) score += 2;
-      });
-      codeKeywords.forEach((codeFrag) => {
-        if (stemCode(course.code) === codeFrag) score += 4;
-        else if (stemCode(course.code).startsWith(codeFrag)) score += 2;
-      });
-      if (course.title.toLowerCase().includes(queryLower)) score += 4;
-      if (course.summary.toLowerCase().includes(queryLower)) score += 2;
-      if ((course.tags || []).join(" ").toLowerCase().includes(queryLower))
-        score += 2;
-      return { ...course, score };
-    });
-    scoredCourses = scoredCourses
-      .filter((c) => c.score > 0)
-      .sort((a, b) => b.score - a.score);
-
-    if (scoredCourses.length > 0) {
-      setResults(scoredCourses);
+    // --- NEW: Exact course title match ---
+    const exactTitleMatches = courses.filter(
+      (course) => course.title.trim().toLowerCase() === queryLower
+    );
+    if (exactTitleMatches.length > 0) {
+      setResults(exactTitleMatches);
       return;
-    } else {
-      // OR fallback
-      let orMatches = courses.map((course) => {
+    }
+
+    // --- Normal search logic ---
+    let requiredTags = [];
+    let queryForKeywords = queryLower;
+
+    // Extract tags
+    const tagPatterns = [];
+    ALL_TAGS.forEach((tag) => {
+      tagPatterns.push({ tag, pattern: tag });
+      if (TAG_SYNONYMS[tag]) {
+        TAG_SYNONYMS[tag].forEach((syn) => {
+          tagPatterns.push({ tag, pattern: syn });
+        });
+      }
+    });
+    tagPatterns.sort((a, b) => b.pattern.length - a.pattern.length);
+
+    tagPatterns.forEach(({ tag, pattern }) => {
+      const regex = new RegExp(
+        `\\b${pattern.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}\\b`,
+        "gi"
+      );
+      if (regex.test(queryForKeywords)) {
+        requiredTags.push(tag);
+        queryForKeywords = queryForKeywords.replace(regex, "");
+      }
+    });
+
+    queryForKeywords = queryForKeywords
+      .replace(
+        /\b(and|or|the|a|an|for|with|to|of|in|on|at|by|from|is|are|was|were|be|been|being|as|it|this|so|do|does|did|not|no|yes|you|your|my|me|we|us|our|course|courses)\b/gi,
+        ""
+      )
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const featureKeywords = queryForKeywords ? tokenize(queryForKeywords) : [];
+    const codeKeywords = featureKeywords.filter((word) =>
+      /^[a-z]{2,5}$/.test(word)
+    );
+
+    let filteredCourses = courses;
+
+    // ✅ Combined AND logic (tags OR text, keywords in text)
+    if (featureKeywords.length > 0 || requiredTags.length > 0) {
+      filteredCourses = filteredCourses.filter((course) => {
         const text = `${course.title} ${course.summary} ${(course.tags || []).join(
           " "
         )}`.toLowerCase();
-        let matchCount = 0;
-        featureKeywords.forEach((word) => {
-          if (text.includes(word)) matchCount++;
-        });
-        requiredTags.forEach((tag) => {
+
+        // Check all keywords in text
+        const allKeywordsPresent = featureKeywords.every((word) =>
+          text.includes(word.toLowerCase())
+        );
+
+        // Check all required tags (allow match in tags OR text, with synonyms)
+        const allTagsPresent = requiredTags.every((tag) => {
+          const normalizedRequiredTag = normalizeTag(tag);
           const normalizedCourseTags = (course.tags || []).map((t) =>
             normalizeTag(t)
           );
-          if (normalizedCourseTags.includes(normalizeTag(tag))) {
-            matchCount++;
-          } else if (
-            TAG_SYNONYMS[tag] &&
-            TAG_SYNONYMS[tag].some((syn) =>
-              normalizedCourseTags.includes(normalizeTag(syn))
-            )
-          ) {
-            matchCount++;
+
+          if (normalizedCourseTags.includes(normalizedRequiredTag)) return true;
+          if (text.includes(normalizedRequiredTag)) return true;
+          if (TAG_SYNONYMS[tag]) {
+            return TAG_SYNONYMS[tag].some((syn) => {
+              const normSyn = normalizeTag(syn);
+              return (
+                normalizedCourseTags.includes(normSyn) || text.includes(normSyn)
+              );
+            });
           }
+          return false;
         });
-        return { ...course, matchCount };
+
+        return allKeywordsPresent && allTagsPresent;
       });
 
-      const maxMatch = Math.max(...orMatches.map((c) => c.matchCount), 0);
-      orMatches = orMatches.filter(
-        (c) => c.matchCount === maxMatch && maxMatch > 0
-      );
-
-      if (orMatches.length > 0) {
-        setClosestMatches(orMatches);
-        setResults([]);
-        return;
+      if (requiredTags.includes("low quizzes")) {
+        filteredCourses = filteredCourses
+          .map((course) => ({
+            ...course,
+            quizCount: extractQuizCount(course.summary || ""),
+          }))
+          .sort((a, b) => a.quizCount - b.quizCount);
       }
     }
-  }
 
-  // --- Tag-only fallback ---
-  if (requiredTags.length > 0) {
-    if (filteredCourses.length > 0) {
-      setResults(filteredCourses);
-      return;
-    } else {
-      let orMatches = courses.map((course) => {
-        let matchCount = 0;
-        requiredTags.forEach((tag) => {
-          const normalizedCourseTags = (course.tags || []).map((t) =>
-            normalizeTag(t)
-          );
-          if (normalizedCourseTags.includes(normalizeTag(tag))) {
-            matchCount++;
-          } else if (
-            TAG_SYNONYMS[tag] &&
-            TAG_SYNONYMS[tag].some((syn) =>
-              normalizedCourseTags.includes(normalizeTag(syn))
-            )
-          ) {
-            matchCount++;
-          }
+    // --- Scoring ---
+    if (featureKeywords.length > 0 || codeKeywords.length > 0) {
+      let scoredCourses = filteredCourses.map((course) => {
+        let score = 0;
+        featureKeywords.forEach((kw) => {
+          if (tokenize(course.title).includes(kw)) score += 2;
+          if (tokenize(course.summary).includes(kw)) score += 1;
+          if (tokenize((course.tags || []).join(" ")).includes(kw)) score += 2;
         });
-        return { ...course, matchCount };
+        codeKeywords.forEach((codeFrag) => {
+          if (stemCode(course.code) === codeFrag) score += 4;
+          else if (stemCode(course.code).startsWith(codeFrag)) score += 2;
+        });
+        if (course.title.toLowerCase().includes(queryLower)) score += 4;
+        if (course.summary.toLowerCase().includes(queryLower)) score += 2;
+        if ((course.tags || []).join(" ").toLowerCase().includes(queryLower))
+          score += 2;
+        return { ...course, score };
       });
-      const maxMatch = Math.max(...orMatches.map((c) => c.matchCount), 0);
-      orMatches = orMatches.filter(
-        (c) => c.matchCount === maxMatch && maxMatch > 0
-      );
-      if (orMatches.length > 0) {
-        setClosestMatches(orMatches);
-        setResults([]);
+      scoredCourses = scoredCourses
+        .filter((c) => c.score > 0)
+        .sort((a, b) => b.score - a.score);
+
+      if (scoredCourses.length > 0) {
+        setResults(scoredCourses);
         return;
+      } else {
+        // OR fallback
+        let orMatches = courses.map((course) => {
+          const text = `${course.title} ${course.summary} ${(course.tags || []).join(
+            " "
+          )}`.toLowerCase();
+          let matchCount = 0;
+          featureKeywords.forEach((word) => {
+            if (text.includes(word)) matchCount++;
+          });
+          requiredTags.forEach((tag) => {
+            const normalizedCourseTags = (course.tags || []).map((t) =>
+              normalizeTag(t)
+            );
+            if (normalizedCourseTags.includes(normalizeTag(tag))) {
+              matchCount++;
+            } else if (
+              TAG_SYNONYMS[tag] &&
+              TAG_SYNONYMS[tag].some((syn) =>
+                normalizedCourseTags.includes(normalizeTag(syn))
+              )
+            ) {
+              matchCount++;
+            }
+          });
+          return { ...course, matchCount };
+        });
+
+        const maxMatch = Math.max(...orMatches.map((c) => c.matchCount), 0);
+        orMatches = orMatches.filter(
+          (c) => c.matchCount === maxMatch && maxMatch > 0
+        );
+
+        if (orMatches.length > 0) {
+          setClosestMatches(orMatches);
+          setResults([]);
+          return;
+        }
       }
     }
-  }
 
-  // // --- TF-IDF fallback ---
-  // const queryTokensArr = tokenize(searchTerm);
-  // const queryTf = fuzzyTermFrequency(queryTokensArr, tfidfData.vocab);
-  // const queryVec = tfidfVector(queryTf, tfidfData.idf);
-  // const ranked = courses
-  //   .map((course, i) => ({
-  //     ...course,
-  //     score: cosineSimilarity(queryVec, tfidfData.courseVectors[i]),
-  //   }))
-  //   .sort((a, b) => b.score - a.score);
-  // const maxScore = ranked.length > 0 ? ranked[0].score : 0;
-  // const threshold = 0.2;
-  // const filtered = ranked.filter(
-  //   (c) => c.score > 0 && c.score >= threshold * maxScore
-  // );
-  // setResults(filtered.length ? filtered : []);
-};
+    // --- Tag-only fallback ---
+    if (requiredTags.length > 0) {
+      if (filteredCourses.length > 0) {
+        setResults(filteredCourses);
+        return;
+      } else {
+        let orMatches = courses.map((course) => {
+          let matchCount = 0;
+          requiredTags.forEach((tag) => {
+            const normalizedCourseTags = (course.tags || []).map((t) =>
+              normalizeTag(t)
+            );
+            if (normalizedCourseTags.includes(normalizeTag(tag))) {
+              matchCount++;
+            } else if (
+              TAG_SYNONYMS[tag] &&
+              TAG_SYNONYMS[tag].some((syn) =>
+                normalizedCourseTags.includes(normalizeTag(syn))
+              )
+            ) {
+              matchCount++;
+            }
+          });
+          return { ...course, matchCount };
+        });
+        const maxMatch = Math.max(...orMatches.map((c) => c.matchCount), 0);
+        orMatches = orMatches.filter(
+          (c) => c.matchCount === maxMatch && maxMatch > 0
+        );
+        if (orMatches.length > 0) {
+          setClosestMatches(orMatches);
+          setResults([]);
+          return;
+        }
+      }
+    }
+
+    // // --- TF-IDF fallback ---
+    // const queryTokensArr = tokenize(searchTerm);
+    // const queryTf = fuzzyTermFrequency(queryTokensArr, tfidfData.vocab);
+    // const queryVec = tfidfVector(queryTf, tfidfData.idf);
+    // const ranked = courses
+    //   .map((course, i) => ({
+    //     ...course,
+    //     score: cosineSimilarity(queryVec, tfidfData.courseVectors[i]),
+    //   }))
+    //   .sort((a, b) => b.score - a.score);
+    // const maxScore = ranked.length > 0 ? ranked[0].score : 0;
+    // const threshold = 0.2;
+    // const filtered = ranked.filter(
+    //   (c) => c.score > 0 && c.score >= threshold * maxScore
+    // );
+    // setResults(filtered.length ? filtered : []);
+  };
 
   const isPineapplePizza = query.trim().toLowerCase() === "pineapple on pizza";
 
@@ -1283,16 +1361,16 @@ function App() {
 
   // Scroll to top when page changes
   useEffect(() => {
-  if (hasSearched && (results.length > 0 || closestMatches.length > 0)) {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    if (document.documentElement) {
-      document.documentElement.scrollTop = 0;
+    if (hasSearched && (results.length > 0 || closestMatches.length > 0)) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      if (document.documentElement) {
+        document.documentElement.scrollTop = 0;
+      }
+      if (document.body) {
+        document.body.scrollTop = 0;
+      }
     }
-    if (document.body) {
-      document.body.scrollTop = 0;
-    }
-  }
-}, [currentPage, hasSearched, results.length, closestMatches.length]);
+  }, [currentPage, hasSearched, results.length, closestMatches.length]);
 
   // Reset page on new search
   useEffect(() => {
@@ -1421,7 +1499,7 @@ function App() {
                 only; you can also combine it with other tags like "ethical
                 perspective".
               </li>
-               <li>
+              <li>
                 <b>Clicking/Pressing on a course's name or code</b>
                 <br />
                 This will allow you to quickly view more details about the course,
@@ -1498,293 +1576,317 @@ function App() {
             Syllify
           </h1>
 
-          <div className="search-bar-block">
-            <div className="search-bar-row">
-              <form
-                className="search-form"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  doSearch();
-                }}
+          <div className="mode-controls">
+            <div className="mode-toggle">
+              <button
+                className={mode === "search" ? "active" : ""}
+                onClick={() => setMode("search")}
               >
-                <input
-                  className="search-input"
-                  type="text"
-                  placeholder="Search for courses or topics..."
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  autoFocus
-                  spellCheck={true}
-                />
-                <button className="search-btn" type="submit">
-                  Search
-                </button>
-              </form>
-            </div>
-
-            <div className="utility-bar" ref={dropdownRef}>
-              <div className="util-left">
-                <button
-                  className={`recent-toggle${openRecent ? " open" : ""}`}
-                  type="button"
-                  onClick={() => setOpenRecent((v) => !v)}
-                  aria-expanded={openRecent}
-                  aria-controls="recent-dropdown"
-                >
-                  <FaClock className="recent-icon" />
-                  <span>Recent</span>
-                  <FaChevronDown className="recent-caret" />
-                </button>
-
-                {openRecent && (
-                  <div
-                    id="recent-dropdown"
-                    role="menu"
-                    className="recent-dropdown"
-                  >
-                    {searchHistory.length === 0 ? (
-                      <div className="recent-empty">No recent searches</div>
-                    ) : (
-                      <div className="recent-list">
-                        {searchHistory.map((q, i) => (
-                          <button
-                            key={i}
-                            className="history-btn"
-                            role="menuitem"
-                            onClick={() => {
-                              setQuery(q);
-                              setOpenRecent(false);
-                              setTimeout(
-                                () =>
-                                  document
-                                    .querySelector(".search-input")
-                                    ?.focus(),
-                                0
-                              );
-                            }}
-                          >
-                            {q}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="util-icons">
-                <button
-                  className="action-icon"
-                  type="button"
-                  onClick={handleShowTips}
-                  title="Search tips"
-                  aria-label="Search tips"
-                >
-                  <FaRegLightbulb size={18} />
-                </button>
-                <button
-                  className="action-icon"
-                  type="button"
-                  onClick={handleShowTipPopup}
-                  title="Support Syllify"
-                  aria-label="Support Syllify"
-                >
-                  <FaCoffee size={18} />
-                </button>
-              </div>
+                <FaSearch /> Search
+              </button>
+              <button
+                className={mode === "schedule" ? "active" : ""}
+                onClick={() => setMode("schedule")}
+              >
+                <FaCalendarAlt /> Schedule
+              </button>
             </div>
           </div>
 
-          {hasSearched && (
-            <div className="results-count">
-              {results.length === 1
-                ? "1 course found"
-                : `${results.length} courses found`}
-
-              {didYouMean && (
-                <>
-                  {" — Did you mean"}
-                  <span
-                    className="did-you-mean-inline"
-                    onClick={() => {
-                      setQuery(didYouMean);
-                      doSearch(didYouMean);
+          {mode === "search" ? (
+            <>
+              <div className="search-bar-block">
+                <div className="search-bar-row">
+                  <form
+                    className="search-form"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      doSearch();
                     }}
-                    role="button"
-                    tabIndex={0}
                   >
-                    {didYouMean}
-                  </span>
-                  ?
-                </>
-              )}
+                    <input
+                      className="search-input"
+                      type="text"
+                      placeholder="Search for courses or topics..."
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      autoFocus
+                      spellCheck={true}
+                    />
+                    <button className="search-btn" type="submit">
+                      Search
+                    </button>
+                  </form>
+                </div>
 
-              {closestMatches.length > 0 && (
-                <>
-                  {" — "}
-                  <span className="closest-matches">
-                    {`${closestMatches.length} closest ${
-                      closestMatches.length === 1 ? "match" : "matches"
-                    } shown`}
-                  </span>
-                </>
-              )}
-            </div>
-          )}
+                <div className="utility-bar" ref={dropdownRef}>
+                  <div className="util-left">
+                    <button
+                      className={`recent-toggle${openRecent ? " open" : ""}`}
+                      type="button"
+                      onClick={() => setOpenRecent((v) => !v)}
+                      aria-expanded={openRecent}
+                      aria-controls="recent-dropdown"
+                    >
+                      <FaClock className="recent-icon" />
+                      <span>Recent</span>
+                      <FaChevronDown className="recent-caret" />
+                    </button>
 
-          <section
-            className={`results${
-              hasSearched && results.length === 0 && closestMatches.length === 0
-                ? " empty"
-                : ""
-            }`}
-          >
-            {hasSearched &&
-              results.length === 0 &&
-              closestMatches.length === 0 && (
-                <div className="no-results">
-                  <div className="no-results-bold">
-                    {isPineapplePizza
-                      ? "...is a crime."
-                      : "Sorry! I couldn't find anything…"}
+                    {openRecent && (
+                      <div
+                        id="recent-dropdown"
+                        role="menu"
+                        className="recent-dropdown"
+                      >
+                        {searchHistory.length === 0 ? (
+                          <div className="recent-empty">No recent searches</div>
+                        ) : (
+                          <div className="recent-list">
+                            {searchHistory.map((q, i) => (
+                              <button
+                                key={i}
+                                className="history-btn"
+                                role="menuitem"
+                                onClick={() => {
+                                  setQuery(q);
+                                  setOpenRecent(false);
+                                  setTimeout(
+                                    () =>
+                                      document
+                                        .querySelector(".search-input")
+                                        ?.focus(),
+                                    0
+                                  );
+                                }}
+                              >
+                                {q}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  {!isPineapplePizza && (
-                    <div className="no-results-variation">
-                      {noResultsVariation}
-                    </div>
+
+                  <div className="util-icons">
+                    <button
+                      className="action-icon"
+                      type="button"
+                      onClick={handleShowTips}
+                      title="Search tips"
+                      aria-label="Search tips"
+                    >
+                      <FaRegLightbulb size={18} />
+                    </button>
+                    <button
+                      className="action-icon"
+                      type="button"
+                      onClick={handleShowTipPopup}
+                      title="Support Syllify"
+                      aria-label="Support Syllify"
+                    >
+                      <FaCoffee size={18} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {hasSearched && (
+                <div className="results-count">
+                  {results.length === 1
+                    ? "1 course found"
+                    : `${results.length} courses found`}
+
+                  {didYouMean && (
+                    <>
+                      {" — Did you mean"}
+                      <span
+                        className="did-you-mean-inline"
+                        onClick={() => {
+                          setQuery(didYouMean);
+                          doSearch(didYouMean);
+                        }}
+                        role="button"
+                        tabIndex={0}
+                      >
+                        {didYouMean}
+                      </span>
+                      ?
+                    </>
+                  )}
+
+                  {closestMatches.length > 0 && (
+                    <>
+                      {" — "}
+                      <span className="closest-matches">
+                        {`${closestMatches.length} closest ${closestMatches.length === 1 ? "match" : "matches"
+                          } shown`}
+                      </span>
+                    </>
                   )}
                 </div>
               )}
 
-            {hasSearched &&
-              (results.length > 0 ? paginatedResults : paginatedClosest).map((course) => (
-                <div className="course-card" key={course.id}>
-                  <div
-                    className="course-header"
-                    onClick={() => setSelectedCourse(course)}
-                    style={{ cursor: "pointer" }}
-                  >
-                  <span className="course-title">
-                    {highlightText(course.title, query.split(/\s+/))}
-                  </span>
-                  <span className="course-code">{course.code}</span>
-                  </div>
-
-                  {course.summary.split("\n---\n").map((part, idx, arr) =>
-                    idx < arr.length - 1 ? (
-                      <React.Fragment key={idx}>
-                        <p className="course-summary">
-                          {highlightText(part, tokenize(query))}
-                        </p>
-                        <div className="course-divider"></div>
-                      </React.Fragment>
-                    ) : (
-                      <p className="course-summary" key={idx}>
-                        {highlightText(part, tokenize(query))}
-                      </p>
-                    )
-                  )}
-
-                  {course.tags && course.tags.length > 0 && (
-                    <div className="course-tags">
-                      {course.tags.map((tag) => (
-                        <span className="tag" key={tag}>
-                          {highlightText(tag, tokenize(query))}
-                        </span>
-                      ))}
+              <section
+                className={`results${hasSearched && results.length === 0 && closestMatches.length === 0
+                  ? " empty"
+                  : ""
+                  }`}
+              >
+                {hasSearched &&
+                  results.length === 0 &&
+                  closestMatches.length === 0 && (
+                    <div className="no-results">
+                      <div className="no-results-bold">
+                        {isPineapplePizza
+                          ? "...is a crime."
+                          : "Sorry! I couldn't find anything…"}
+                      </div>
+                      {!isPineapplePizza && (
+                        <div className="no-results-variation">
+                          {noResultsVariation}
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  {/* --- REMOVED: Inline expandable sections --- */}
-                  {/* {course.open && (
+                {hasSearched &&
+                  (results.length > 0 ? paginatedResults : paginatedClosest).map((course) => (
+                    <div className="course-card" key={course.id}>
+                      <div
+                        className="course-header"
+                        onClick={() => setSelectedCourse(course)}
+                        style={{ cursor: "pointer" }}
+                      >
+                        <span className="course-title">
+                          {highlightText(course.title, query.split(/\s+/))}
+                        </span>
+                        <span className="course-code">{course.code}</span>
+                      </div>
+
+                      {course.summary.split("\n---\n").map((part, idx, arr) =>
+                        idx < arr.length - 1 ? (
+                          <React.Fragment key={idx}>
+                            <p className="course-summary">
+                              {highlightText(part, tokenize(query))}
+                            </p>
+                            <div className="course-divider"></div>
+                          </React.Fragment>
+                        ) : (
+                          <p className="course-summary" key={idx}>
+                            {highlightText(part, tokenize(query))}
+                          </p>
+                        )
+                      )}
+
+                      {course.tags && course.tags.length > 0 && (
+                        <div className="course-tags">
+                          {course.tags.map((tag) => (
+                            <span className="tag" key={tag}>
+                              {highlightText(tag, tokenize(query))}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* --- REMOVED: Inline expandable sections --- */}
+                      {/* {course.open && (
                     <div className="course-sections">
                       ...sections table...
                     </div>
                   )} */}
+                    </div>
+                  ))}
+              </section>
+
+              {/* --- Pagination Controls --- */}
+              {hasSearched && totalPages > 1 && (
+                <div className="pagination-bar" style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  gap: "1.2rem",
+                  margin: "2.2rem 0 1.2rem 0",
+                  zIndex: 2,
+                }}>
+                  <button
+                    className="pagination-arrow"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    aria-label="Previous page"
+                    style={{
+                      background: "rgba(28,30,56,0.35)",
+                      border: "1.5px solid rgba(157,167,255,0.45)",
+                      color: currentPage === 1 ? "#b7bcf0" : "#b5bdff",
+                      borderRadius: "12px",
+                      padding: "0.6em 1em",
+                      fontSize: "1.1rem",
+                      fontWeight: 800,
+                      cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                      opacity: currentPage === 1 ? 0.5 : 1,
+                      transition: "all 0.2s",
+                      boxShadow: "0 1px 0 rgba(255,255,255,0.04) inset, 0 -1px 0 rgba(0,0,0,0.18) inset",
+                    }}
+                  >
+                    <FaArrowLeft size={18} />
+                  </button>
+
+                  {/* NEW: Editable page number */}
+                  <div className="pagination-page">
+                    <span className="pagination-label">Page</span>
+                    <input
+                      className="pagination-input"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={pageInput}
+                      onChange={(e) => {
+                        const onlyDigits = e.target.value.replace(/\D/g, "");
+                        setPageInput(onlyDigits);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          applyPageInput();
+                        }
+                      }}
+                      onBlur={applyPageInput}
+                      aria-label="Current page"
+                    />
+                    <span className="pagination-total">of {totalPages}</span>
+                  </div>
+
+                  <button
+                    className="pagination-arrow"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    aria-label="Next page"
+                    style={{
+                      background: "rgba(28,30,56,0.35)",
+                      border: "1.5px solid rgba(157,167,255,0.45)",
+                      color: currentPage === totalPages ? "#b7bcf0" : "#b5bdff",
+                      borderRadius: "12px",
+                      padding: "0.6em 1em",
+                      fontSize: "1.1rem",
+                      fontWeight: 800,
+                      cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                      opacity: currentPage === totalPages ? 0.5 : 1,
+                      transition: "all 0.2s",
+                      boxShadow: "0 1px 0 rgba(255,255,255,0.04) inset, 0 -1px 0 rgba(0,0,0,0.18) inset",
+                    }}
+                  >
+                    <FaArrowRight size={18} />
+                  </button>
                 </div>
-              ))}
-          </section>
-
-          {/* --- Pagination Controls --- */}
-          {hasSearched && totalPages > 1 && (
-            <div className="pagination-bar" style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: "1.2rem",
-              margin: "2.2rem 0 1.2rem 0",
-              zIndex: 2,
-            }}>
-              <button
-                className="pagination-arrow"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                aria-label="Previous page"
-                style={{
-                  background: "rgba(28,30,56,0.35)",
-                  border: "1.5px solid rgba(157,167,255,0.45)",
-                  color: currentPage === 1 ? "#b7bcf0" : "#b5bdff",
-                  borderRadius: "12px",
-                  padding: "0.6em 1em",
-                  fontSize: "1.1rem",
-                  fontWeight: 800,
-                  cursor: currentPage === 1 ? "not-allowed" : "pointer",
-                  opacity: currentPage === 1 ? 0.5 : 1,
-                  transition: "all 0.2s",
-                  boxShadow: "0 1px 0 rgba(255,255,255,0.04) inset, 0 -1px 0 rgba(0,0,0,0.18) inset",
-                }}
-              >
-                <FaArrowLeft size={18} />
-              </button>
-
-              {/* NEW: Editable page number */}
-              <div className="pagination-page">
-                <span className="pagination-label">Page</span>
-                <input
-                  className="pagination-input"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={pageInput}
-                  onChange={(e) => {
-                    const onlyDigits = e.target.value.replace(/\D/g, "");
-                    setPageInput(onlyDigits);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      applyPageInput();
-                    }
-                  }}
-                  onBlur={applyPageInput}
-                  aria-label="Current page"
-                />
-                <span className="pagination-total">of {totalPages}</span>
-              </div>
-
-              <button
-                className="pagination-arrow"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                aria-label="Next page"
-                style={{
-                  background: "rgba(28,30,56,0.35)",
-                  border: "1.5px solid rgba(157,167,255,0.45)",
-                  color: currentPage === totalPages ? "#b7bcf0" : "#b5bdff",
-                  borderRadius: "12px",
-                  padding: "0.6em 1em",
-                  fontSize: "1.1rem",
-                  fontWeight: 800,
-                  cursor: currentPage === totalPages ? "not-allowed" : "pointer",
-                  opacity: currentPage === totalPages ? 0.5 : 1,
-                  transition: "all 0.2s",
-                  boxShadow: "0 1px 0 rgba(255,255,255,0.04) inset, 0 -1px 0 rgba(0,0,0,0.18) inset",
-                }}
-              >
-                <FaArrowRight size={18} />
-              </button>
-            </div>
+              )}
+              {/* --- END Pagination Controls --- */}
+            </>
+          ) : (
+            <ScheduleInterface
+              sheetData={sheetDataFall}
+              sheetDataSpring={sheetDataSpring}
+            />
           )}
-          {/* --- END Pagination Controls --- */}
 
           {/* --- NEW: Course Sections Popup Modal --- */}
           {selectedCourse && (() => {
