@@ -98,25 +98,63 @@ const ScheduleView = ({
 
     // Create a clone to render off-screen (prevents layout shift/animation)
     const clone = scheduleRef.current.cloneNode(true);
-    clone.style.display = 'block';
-    clone.style.width = '1000px'; // Force desktop width
-    clone.style.position = 'fixed'; // Fixed instead of absolute to prevent page expansion
-    clone.style.left = '-9999px';
-    clone.style.top = '0';
-    clone.style.visibility = 'hidden'; // Hide from view completely
-    clone.style.pointerEvents = 'none'; // Prevent any interaction
-    clone.style.zIndex = '-1000'; // Ensure it's below everything
+
+    // Explicitly set styles to ensure visibility for html2canvas
+    // We use a wrapper to ensure we don't mess up the document layout
+    Object.assign(clone.style, {
+      display: 'block',
+      visibility: 'visible', // CRITICAL: html2canvas ignores hidden elements
+      opacity: '1',
+      position: 'fixed',
+      left: '-10000px', // Move far off-screen
+      top: '0',
+      width: 'fit-content', // Allow it to expand to fit content
+      minWidth: '1000px', // Ensure at least desktop width
+      height: 'auto',
+      overflow: 'visible', // Ensure nothing is clipped
+      zIndex: '-1000',
+      transform: 'none',
+      pointerEvents: 'none',
+      backgroundColor: '#1e1e28', // Ensure background is set on the element
+      padding: '20px', // Add some padding around the capture
+    });
+
     document.body.appendChild(clone);
 
     try {
+      // Wait for a microtask to ensure DOM updates
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Get the actual size of the clone to set canvas dimensions
+      const rect = clone.getBoundingClientRect();
+
       const canvas = await html2canvas(clone, {
-        backgroundColor: '#0f1327',
+        backgroundColor: '#0f1327', // Theme background
         scale: 2,
-        windowWidth: 1200, // Simulate desktop window
+        logging: false,
+        useCORS: true,
+        windowWidth: Math.max(1200, rect.width + 100), // Ensure window is wide enough
+        width: rect.width, // Match the actual width
+        height: rect.height, // Match the actual height
+        x: 0,
+        y: 0,
+        scrollX: 0,
+        scrollY: 0,
+        onclone: (clonedDoc, element) => {
+          // Double check visibility inside the clone
+          element.style.display = 'block';
+          element.style.visibility = 'visible';
+          element.style.overflow = 'visible'; // Ensure overflow is visible in clone
+        }
       });
       return canvas;
+    } catch (err) {
+      console.error('html2canvas capture failed:', err);
+      return null;
     } finally {
-      document.body.removeChild(clone);
+      if (document.body.contains(clone)) {
+        document.body.removeChild(clone);
+      }
       document.body.style.overflow = originalOverflow;
     }
   };
@@ -133,13 +171,56 @@ const ScheduleView = ({
   };
 
   const handleCopy = async () => {
-    const canvas = await captureSchedule();
-    if (!canvas) return;
+    // Check for Secure Context (HTTPS or localhost)
+    if (!window.isSecureContext) {
+      handleExport();
+      alert('Copying to clipboard requires a secure connection (HTTPS). Image downloaded instead.');
+      return;
+    }
+
+    if (!navigator.clipboard || !navigator.clipboard.write) {
+      handleExport();
+      alert('Clipboard API not supported in this browser. Image downloaded instead.');
+      return;
+    }
 
     try {
-      const dataUrl = canvas.toDataURL('image/png');
-      const response = await fetch(dataUrl);
-      const blob = await response.blob();
+      // Try the modern Promise-based approach first (Required for Safari)
+      try {
+        const item = new ClipboardItem({
+          'image/png': new Promise(async (resolve, reject) => {
+            try {
+              const canvas = await captureSchedule();
+              if (!canvas) {
+                reject(new Error('Failed to capture schedule'));
+                return;
+              }
+              canvas.toBlob((blob) => {
+                if (blob) resolve(blob);
+                else reject(new Error('Failed to create blob'));
+              }, 'image/png');
+            } catch (err) {
+              reject(err);
+            }
+          })
+        });
+        await navigator.clipboard.write([item]);
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 2000);
+        return; // Success!
+      } catch (promiseErr) {
+        console.warn('Promise-based ClipboardItem failed, trying fallback:', promiseErr);
+        // If the Promise approach fails (e.g. not supported in some browsers),
+        // fall back to the standard Blob approach.
+        // Note: This might fail on Safari if capture takes too long, but it's our best backup.
+      }
+
+      // Fallback: Generate blob first, then write
+      const canvas = await captureSchedule();
+      if (!canvas) throw new Error('Failed to capture schedule');
+
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) throw new Error('Failed to create blob');
 
       await navigator.clipboard.write([
         new ClipboardItem({
@@ -149,9 +230,21 @@ const ScheduleView = ({
 
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
+
     } catch (err) {
-      console.error('Failed to copy to clipboard:', err);
-      alert('Failed to copy to clipboard. Please try downloading instead.');
+      console.error('Copy failed:', err);
+
+      // Final Fallback: download the image
+      handleExport();
+
+      // Provide a more helpful error message
+      let msg = 'Copy to clipboard failed. Image has been downloaded instead.';
+      if (err.name === 'NotAllowedError') {
+        msg = 'Clipboard write permission denied. Image downloaded instead.';
+      } else if (err.message) {
+        msg += ` (${err.message})`;
+      }
+      alert(msg);
     }
   };
 
@@ -863,7 +956,7 @@ const ScheduleView = ({
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 12px 8px 6px 8px;
+          padding: 24px 8px 6px 8px;
           gap: 16px;
           flex-wrap: wrap;
         }
