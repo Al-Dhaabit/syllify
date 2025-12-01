@@ -1218,6 +1218,11 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
           transition: opacity 0.2s ease;
         }
 
+        .course-tag button svg {
+          width: 1em;
+          height: 1em;
+        }
+
         .course-tag button:hover {
           opacity: 1;
         }
@@ -1236,6 +1241,11 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
           font-weight: 500;
           transition: all 0.2s ease;
           opacity: 0.8;
+        }
+
+        .clear-all-btn svg {
+          width: 1em;
+          height: 1em;
         }
 
         .clear-all-btn:hover {
@@ -1294,6 +1304,12 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
           color: #ffcf7a;
           display: flex;
           align-items: center;
+          font-size: 1rem;
+        }
+
+        .pref-icon svg {
+          width: 1em;
+          height: 1em;
         }
 
         .pref-btn-text {
@@ -1400,7 +1416,12 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
           cursor: pointer;
           transition: all 0.2s ease;
           height: 36px;
-          font-size: 0.9rem;
+          font-size: 1rem;
+        }
+
+        .favorites-icon-btn svg {
+          width: 1em;
+          height: 1em;
         }
 
         .favorites-icon-btn:hover,
@@ -1418,8 +1439,9 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
         }
 
         .history-icon-btn {
-          display: grid;
-          place-items: center;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           width: 36px;
           height: 36px;
           border-radius: 10px;
@@ -1428,6 +1450,12 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
           color: #ffcf7a;
           cursor: pointer;
           transition: all 0.2s ease;
+          font-size: 1.1rem;
+        }
+
+        .history-icon-btn svg {
+          width: 1em;
+          height: 1em;
         }
 
         .history-icon-btn:hover,
@@ -1596,7 +1624,13 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
           border-radius: 8px;
           cursor: pointer;
           font-size: 1.1rem;
+          line-height: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           transition: all 0.2s;
+          min-width: 42px;
+          min-height: 42px;
         }
 
         .pagination-arrow:hover:not(:disabled) {
@@ -1961,7 +1995,9 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
 
           .pagination-arrow {
             padding: 8px 12px;
-            font-size: 1rem;
+            font-size: 0.95rem;
+            min-width: 40px;
+            min-height: 40px;
           }
 
           .pagination-page {
