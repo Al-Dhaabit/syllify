@@ -1677,7 +1677,7 @@ function App() {
                       title="Search tips"
                       aria-label="Search tips"
                     >
-                      <FaRegLightbulb size={18} />
+                      <FaRegLightbulb />
                     </button>
                     <button
                       className="action-icon"
@@ -1686,7 +1686,7 @@ function App() {
                       title="Support Syllify"
                       aria-label="Support Syllify"
                     >
-                      <FaCoffee size={18} />
+                      <FaCoffee />
                     </button>
                   </div>
                 </div>
@@ -1802,34 +1802,14 @@ function App() {
 
               {/* --- Pagination Controls --- */}
               {hasSearched && totalPages > 1 && (
-                <div className="pagination-bar" style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  gap: "1.2rem",
-                  margin: "2.2rem 0 1.2rem 0",
-                  zIndex: 2,
-                }}>
+                <div className="pagination-bar">
                   <button
                     className="pagination-arrow"
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
                     aria-label="Previous page"
-                    style={{
-                      background: "rgba(28,30,56,0.35)",
-                      border: "1.5px solid rgba(157,167,255,0.45)",
-                      color: currentPage === 1 ? "#b7bcf0" : "#b5bdff",
-                      borderRadius: "12px",
-                      padding: "0.6em 1em",
-                      fontSize: "1.1rem",
-                      fontWeight: 800,
-                      cursor: currentPage === 1 ? "not-allowed" : "pointer",
-                      opacity: currentPage === 1 ? 0.5 : 1,
-                      transition: "all 0.2s",
-                      boxShadow: "0 1px 0 rgba(255,255,255,0.04) inset, 0 -1px 0 rgba(0,0,0,0.18) inset",
-                    }}
                   >
-                    <FaArrowLeft size={18} />
+                    <FaArrowLeft />
                   </button>
 
                   {/* NEW: Editable page number */}
@@ -1861,21 +1841,8 @@ function App() {
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
                     aria-label="Next page"
-                    style={{
-                      background: "rgba(28,30,56,0.35)",
-                      border: "1.5px solid rgba(157,167,255,0.45)",
-                      color: currentPage === totalPages ? "#b7bcf0" : "#b5bdff",
-                      borderRadius: "12px",
-                      padding: "0.6em 1em",
-                      fontSize: "1.1rem",
-                      fontWeight: 800,
-                      cursor: currentPage === totalPages ? "not-allowed" : "pointer",
-                      opacity: currentPage === totalPages ? 0.5 : 1,
-                      transition: "all 0.2s",
-                      boxShadow: "0 1px 0 rgba(255,255,255,0.04) inset, 0 -1px 0 rgba(0,0,0,0.18) inset",
-                    }}
                   >
-                    <FaArrowRight size={18} />
+                    <FaArrowRight />
                   </button>
                 </div>
               )}
@@ -1996,7 +1963,7 @@ function App() {
             aria-label="Email"
             title="Email"
           >
-            <FaEnvelope size={22} />
+            <FaEnvelope />
           </a>
           <a
             href="https://linkedin.com/in/khaledmiari"
@@ -2006,7 +1973,7 @@ function App() {
             aria-label="LinkedIn"
             title="LinkedIn"
           >
-            <FaLinkedin size={22} />
+            <FaLinkedin />
           </a>
         </span>
       </footer>
@@ -2018,7 +1985,7 @@ function App() {
           onClick={scrollToTop}
           aria-label="Back to top"
         >
-          <FaArrowUp size={20} />
+          <FaArrowUp />
         </button>
       )} */}
     </div>

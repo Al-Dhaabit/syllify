@@ -10,6 +10,8 @@ import {
   FaCheck,
   FaTrashAlt,
   FaHeart,
+  FaArrowLeft,
+  FaArrowRight,
 } from 'react-icons/fa';
 
 const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
@@ -124,10 +126,25 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
       return saved ? (JSON.parse(saved).currentPage || 1) : 1;
     } catch (e) { return 1; }
   });
+  // Page input state (string-based like App.js)
+  const [pageInput, setPageInput] = useState("1");
 
   // Scroll to top when page changes
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (schedules.length > 0) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (document.documentElement) {
+        document.documentElement.scrollTop = 0;
+      }
+      if (document.body) {
+        document.body.scrollTop = 0;
+      }
+    }
+  }, [currentPage, schedules.length]);
+
+  // Sync the text input when current page changes
+  useEffect(() => {
+    setPageInput(String(currentPage));
   }, [currentPage]);
 
   const schedulesPerPage = 5;
@@ -460,31 +477,21 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
     }, 100);
   };
 
-  const handlePrevPage = () => {
-    setCurrentPage((p) => Math.max(1, p - 1));
+  // Helpers to clamp and apply page input (matching App.js)
+  const clampPage = (val) => {
+    if (!Number.isFinite(val) || val < 1) return 1;
+    if (val > totalPages) return totalPages;
+    return val;
   };
 
-  const handleNextPage = () => {
-    setCurrentPage((p) => Math.min(totalPages, p + 1));
-  };
-
-  const handlePageInput = (e) => {
-    const value = e.target.value;
-    if (value === '') {
-      setCurrentPage('');
-      return;
-    }
-    const page = parseInt(value, 10);
-    if (!isNaN(page) && page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
-  };
-
-  const handlePageBlur = () => {
-    if (currentPage === '' || currentPage < 1) {
-      setCurrentPage(1);
-    } else if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
+  const applyPageInput = () => {
+    const n = parseInt(pageInput, 10);
+    if (!isNaN(n)) {
+      const clamped = clampPage(n);
+      setCurrentPage(clamped);
+      setPageInput(String(clamped));
+    } else {
+      setPageInput(String(currentPage));
     }
   };
 
@@ -628,12 +635,13 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
 
               {scheduleHistory.length > 0 && (
                 <button
+                  className={`action-icon history-icon-btn ${showHistory ? 'active' : ''}`}
                   onClick={() => {
                     setShowHistory(!showHistory);
                     if (!showHistory) setShowFavorites(false);
                   }}
-                  className={`history-icon-btn ${showHistory ? 'active' : ''}`}
                   title="View History"
+                  aria-label="View History"
                 >
                   <FaHistory />
                 </button>
@@ -715,7 +723,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
           <div className="results-section">
             <div className="schedules-list">
               <h3 className="results-heading">
-                <FaHeart style={{ color: '#ff6b6b', marginRight: '8px' }} />
+                <FaHeart />
                 {favorites.length} Saved Schedule{favorites.length !== 1 ? 's' : ''}
               </h3>
 
@@ -890,7 +898,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
                 if (unsatisfied.length > 0) {
                   return (
                     <div className="warning-message" style={{ textAlign: 'left', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <FaExclamationTriangle style={{ fontSize: '1.2em', flexShrink: 0 }} />
+                      <FaExclamationTriangle />
                       <div>
                         <strong>Notice:</strong> The {unsatisfied.join(', ')} preference{unsatisfied.length > 1 ? 's' : ''} could not be satisfied with the available course sections.
                       </div>
@@ -916,42 +924,53 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
                 </div>
               ))}
 
+              {/* --- Pagination Controls --- */}
               {totalPages > 1 && (
                 <div className="pagination-bar">
                   <button
                     className="pagination-arrow"
-                    onClick={handlePrevPage}
-                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
                     aria-label="Previous page"
                   >
-                    ←
+                    <FaArrowLeft />
                   </button>
 
+                  {/* NEW: Editable page number */}
                   <div className="pagination-page">
                     <span className="pagination-label">Page</span>
                     <input
-                      type="number"
                       className="pagination-input"
-                      value={currentPage}
-                      onChange={handlePageInput}
-                      onBlur={handlePageBlur}
-                      min={1}
-                      max={totalPages}
-                      aria-label="Current page number"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={pageInput}
+                      onChange={(e) => {
+                        const onlyDigits = e.target.value.replace(/\D/g, "");
+                        setPageInput(onlyDigits);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          applyPageInput();
+                        }
+                      }}
+                      onBlur={applyPageInput}
+                      aria-label="Current page"
                     />
                     <span className="pagination-total">of {totalPages}</span>
                   </div>
 
                   <button
                     className="pagination-arrow"
-                    onClick={handleNextPage}
-                    disabled={currentPage >= totalPages}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
                     aria-label="Next page"
                   >
-                    →
+                    <FaArrowRight />
                   </button>
                 </div>
               )}
+              {/* --- END Pagination Controls --- */}
             </div>
           )}
         </div>
@@ -1438,32 +1457,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
           font-weight: 600;
         }
 
-        .history-icon-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
-          background: transparent;
-          border: 1px solid rgba(140, 151, 247, 0.35);
-          color: #ffcf7a;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          font-size: 1.1rem;
-        }
 
-        .history-icon-btn svg {
-          width: 1em;
-          height: 1em;
-        }
-
-        .history-icon-btn:hover,
-        .history-icon-btn.active {
-          background: rgba(140, 151, 247, 0.12);
-          border-color: #ffcf7a;
-          transform: translateY(-1px);
-        }
 
         .generate-section {
           max-width: 1000px;
@@ -1602,108 +1596,20 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
           font-weight: 700;
           margin-bottom: 1.2rem;
           font-size: 1.15rem;
-        }
-
-        .pagination-bar {
           display: flex;
           align-items: center;
-          justify-content: center;
-          gap: 16px;
-          margin-top: 24px;
-          padding: 16px;
-          background: rgba(24, 26, 54, 0.6);
-          border-radius: 12px;
-          border: 1px solid rgba(140, 151, 247, 0.2);
         }
 
-        .pagination-arrow {
-          background: rgba(140, 151, 247, 0.1);
-          border: 1px solid rgba(140, 151, 247, 0.3);
-          color: #cfd5ff;
-          padding: 10px 16px;
-          border-radius: 8px;
-          cursor: pointer;
-          font-size: 1.1rem;
-          line-height: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s;
-          min-width: 42px;
-          min-height: 42px;
+        .results-heading svg {
+          color: #ff6b6b;
+          margin-right: 8px;
         }
 
-        .pagination-arrow:hover:not(:disabled) {
-          background: rgba(140, 151, 247, 0.2);
-          border-color: #ffcf7a;
-          color: #ffcf7a;
-        }
 
-        .pagination-arrow:disabled {
-          opacity: 0.4;
-          cursor: not-allowed;
-        }
-
-        .pagination-page {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          color: #aeb5e9;
-          font-size: 0.95rem;
-        }
-
-        .pagination-input {
-          width: 50px;
-          padding: 6px 8px;
-          border: 1px solid rgba(140, 151, 247, 0.3);
-          border-radius: 6px;
-          background: rgba(255, 255, 255, 0.05);
-          color: #fff;
-          font-size: 0.95rem;
-          text-align: center;
-          outline: none;
-        }
-
-        .pagination-input:focus {
-          border-color: #ffcf7a;
-        }
-
-        .pagination-input::-webkit-outer-spin-button,
-        .pagination-input::-webkit-inner-spin-button {
-          -webkit-appearance: none;
-          margin: 0;
-        }
-
-        .pagination-input[type='number'] {
-          -moz-appearance: textfield;
-        }
 
         /* ============== RESPONSIVE STYLES ============== */
 
         @media (max-width: 900px) {
-          .controls-section {
-            padding: 0 16px;
-          }
-
-          .selected-courses-list {
-            gap: 0.5rem;
-          }
-
-          .selected-courses-section {
-            margin-top: 0.9rem;
-          }
-
-          .generate-section {
-            margin-top: 1.25rem;
-          }
-
-          .error-wrapper {
-            margin-top: 1.25rem;
-            padding: 0 16px;
-          }
-        }
-
-        @media (max-width: 768px) {
           .controls-section {
             padding: 0 16px;
           }
@@ -1719,6 +1625,8 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
             max-width: 320px;
             border-radius: 16px;
             animation: fadeIn 0.2s ease-out;
+            z-index: 100; /* Ensure it's on top */
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
           }
 
           @keyframes fadeIn {
@@ -1756,8 +1664,6 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
             padding: 10px 20px;
             font-size: 0.9rem;
           }
-
-
 
           .favorites-header {
             padding: 16px 20px;
@@ -1868,29 +1774,6 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
 
           .favorite-meta {
             font-size: 0.8rem;
-          }
-        }
-
-        @media (max-width: 600px) {
-          .pagination-bar {
-            gap: 0.7rem;
-            margin: 1.2rem 0 0.7rem 0;
-          }
-
-          .pagination-arrow {
-            padding: 0.5em 0.7em;
-            font-size: 1rem;
-            border-radius: 10px;
-          }
-
-          .pagination-page {
-            gap: 6px;
-            padding: 0.25em 0.6em;
-          }
-
-          .pagination-input {
-            width: 48px;
-            font-size: 0.95rem;
           }
         }
 
@@ -2010,45 +1893,9 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
           .favorite-schedule-preview {
             padding: 0 14px 14px 14px;
           }
-
-          .pagination-bar {
-            gap: 12px;
-            padding: 12px;
-          }
-
-          .pagination-arrow {
-            padding: 8px 12px;
-            font-size: 1rem;
-            min-width: 40px;
-            min-height: 40px;
-          }
-
-          .pagination-page {
-            font-size: 0.9rem;
-          }
-
-          .pagination-input {
-            width: 45px;
-            padding: 5px 6px;
-            font-size: 0.9rem;
-          }
         }
 
         @media (max-width: 420px) {
-          .pagination-bar {
-            gap: 0.5rem;
-            margin-top: 16px;
-            padding: 10px;
-          }
-
-          .pagination-arrow {
-            padding: 0.4em 0.6em;
-            font-size: 0.95rem;
-            border-radius: 8px;
-          }
-        }
-
-        @media (max-width: 360px) {
           .controls-section {
             padding: 0 8px;
           }

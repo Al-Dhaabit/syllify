@@ -410,6 +410,13 @@ main {
   transform: translateY(-1px);
 }
 
+.action-icon.active {
+  background: rgba(255, 207, 122, 0.15);
+  border-color: #ffcf7a;
+  color: #ffcf7a;
+  box-shadow: 0 0 0 1px rgba(255, 207, 122, 0.3) inset;
+}
+
 /* Mobile Search Bar Tweaks */
 @media (max-width: 480px) {
   .search-bar-block {
@@ -1086,7 +1093,8 @@ main,
 }
 
 /* Footer: stack and space */
-@media (max-width: 700px) {
+/* Footer: stack and space */
+@media (max-width: 900px) {
   .footer {
     flex-direction: column;
     gap: 8px;
@@ -1736,4 +1744,79 @@ main,
   background: rgba(255, 107, 107, 0.15);
   color: #ff6b6b;
   border: 1px solid rgba(255, 107, 107, 0.3);
+}
+
+/* =========================
+   Standardized Icon Sizing
+   ========================= */
+
+/* Footer Icons */
+.footer-icon {
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  color: #aeb5e9;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.footer-icon:hover {
+  color: #ffcf7a;
+  transform: translateY(-2px);
+}
+
+/* Pagination Arrows - Ensure icon scales */
+.pagination-arrow {
+  font-size: 1.1rem;
+  /* Controls icon size */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pagination-arrow svg {
+  width: 1em;
+  height: 1em;
+}
+
+/* Back to Top Button */
+.back-to-top {
+  font-size: 1.25rem;
+  /* Controls icon size */
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Results Heading Icon */
+.results-heading svg {
+  font-size: 1em;
+  width: 1em;
+  height: 1em;
+}
+
+/* Warning Message Icon */
+.warning-message svg {
+  font-size: 1.2em;
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+/* Mobile Adjustments */
+@media (max-width: 480px) {
+  .footer-icon {
+    font-size: 1.2rem;
+  }
+
+  .pagination-arrow {
+    font-size: 1rem;
+  }
+
+  .back-to-top {
+    font-size: 1.1rem;
+    width: 36px;
+    height: 36px;
+  }
 }
