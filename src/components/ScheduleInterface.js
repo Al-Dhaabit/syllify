@@ -1611,7 +1611,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
 
         @media (max-width: 900px) {
           .controls-section {
-            padding: 0 16px;
+            padding: 0 1rem;
           }
 
           .preferences-dropdown {
@@ -1621,12 +1621,12 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
             right: auto;
             bottom: auto;
             transform: translate(-50%, -50%);
-            width: calc(100% - 40px);
-            max-width: 320px;
-            border-radius: 16px;
+            width: calc(100% - 2.5rem);
+            max-width: 20rem;
+            border-radius: 1rem;
             animation: fadeIn 0.2s ease-out;
             z-index: 100; /* Ensure it's on top */
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            box-shadow: 0 1.25rem 3.75rem rgba(0,0,0,0.5);
           }
 
           @keyframes fadeIn {
@@ -1657,47 +1657,47 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
 
           .error-wrapper {
             margin-top: 1.2rem;
-            padding: 0 16px;
+            padding: 0 1rem;
           }
 
           .error-message {
-            padding: 10px 20px;
+            padding: 0.625rem 1.25rem;
             font-size: 0.9rem;
           }
 
           .favorites-header {
-            padding: 16px 20px;
+            padding: 1rem 1.25rem;
           }
 
           .favorite-main {
-            padding: 14px 16px;
+            padding: 0.875rem 1rem;
           }
 
           .favorite-schedule-preview {
-            padding: 0 16px 16px 16px;
+            padding: 0 1rem 1rem 1rem;
           }
         }
 
         @media (max-width: 600px) {
           .controls-section {
-            padding: 0 12px;
+            padding: 0 0.75rem;
           }
 
           .semester-toggle button {
-            padding: 7px 14px;
+            padding: 0.4375rem 0.875rem;
             font-size: 0.85rem;
           }
 
           .pref-btn-text {
-            display: none;
+            display: inline; /* Keep visible until 480px */
           }
 
           .preferences-toggle {
-            padding: 6px 10px;
+            padding: 0.375rem 0.625rem;
           }
 
           .favorites-icon-btn {
-            padding: 6px 10px;
+            padding: 0.375rem 0.625rem;
           }
 
           .favorites-count {
@@ -1705,18 +1705,18 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
             align-items: center;
             justify-content: center;
             position: absolute;
-            top: -4px;
-            right: -4px;
+            top: -0.25rem;
+            right: -0.25rem;
             background: #ff6b6b;
             color: white;
             font-size: 0.65rem;
             font-weight: 700;
-            width: 16px;
-            height: 16px;
+            width: 1rem;
+            height: 1rem;
             border-radius: 50%;
             padding: 0;
             border: 2px solid #1c1e38; /* Cutout effect */
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.2);
           }
 
           .favorites-icon-btn {
@@ -1726,7 +1726,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
 
           .selected-courses-list {
             gap: 0.45rem;
-            padding: 0 4px;
+            padding: 0 0.25rem;
           }
 
           .selected-courses-section {
@@ -1737,7 +1737,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
           .course-tag {
             padding: 0.3em 0.8em;
             font-size: 0.88rem;
-            gap: 6px;
+            gap: 0.375rem;
           }
 
           .course-tag button {
@@ -1745,7 +1745,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
           }
 
           .clear-all-btn {
-            padding: 5px 12px;
+            padding: 0.3125rem 0.75rem;
             font-size: 0.8rem;
           }
 
@@ -1760,11 +1760,11 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
 
           .error-wrapper {
             margin-top: 1rem;
-            padding: 0 12px;
+            padding: 0 0.75rem;
           }
 
           .error-message {
-            padding: 10px 16px;
+            padding: 0.625rem 1rem;
             font-size: 0.88rem;
           }
 
@@ -1779,28 +1779,33 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
 
         @media (max-width: 480px) {
           .controls-section {
-            padding: 0 10px;
+            padding: 0 0.625rem;
           }
 
           .semester-toggle {
-            padding: 2px;
-            gap: 2px;
+            padding: 0.125rem;
+            gap: 0.125rem;
           }
 
           .semester-toggle button {
-            padding: 6px 12px;
+            padding: 0.375rem 0.75rem;
             font-size: 0.8rem;
+          }
+
+          /* Hide preference text on smaller screens (aligned with App.css .recent-toggle) */
+          .pref-btn-text {
+            display: none;
           }
 
           .preferences-toggle,
           .history-icon-btn {
-            width: 38px;
-            height: 38px;
+            width: 2.375rem;
+            height: 2.375rem;
             padding: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 10px;
+            border-radius: 0.625rem;
             font-size: 1.1rem;
           }
 
@@ -1809,13 +1814,13 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
           }
 
           .favorites-icon-btn {
-            width: 38px;
-            height: 38px;
+            width: 2.375rem;
+            height: 2.375rem;
             padding: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 10px;
+            border-radius: 0.625rem;
             font-size: 1.1rem;
             position: relative;
             overflow: visible;
@@ -1835,7 +1840,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
           .course-tag {
             padding: 0.28em 0.7em;
             font-size: 0.82rem;
-            gap: 5px;
+            gap: 0.3125rem;
           }
 
           .course-tag button {
@@ -1843,7 +1848,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
           }
 
           .clear-all-btn {
-            padding: 5px 10px;
+            padding: 0.3125rem 0.625rem;
             font-size: 0.75rem;
           }
 
@@ -1862,27 +1867,27 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
 
           .error-wrapper {
             margin-top: 0.9rem;
-            padding: 0 10px;
+            padding: 0 0.625rem;
           }
 
           .error-message {
-            padding: 8px 14px;
+            padding: 0.5rem 0.875rem;
             font-size: 0.85rem;
           }
 
           .favorites-list {
-            padding: 12px;
+            padding: 0.75rem;
           }
 
           .favorite-item {
-            margin-bottom: 12px;
+            margin-bottom: 0.75rem;
           }
 
           .favorite-main {
-            padding: 12px 14px;
+            padding: 0.75rem 0.875rem;
             flex-direction: column;
             align-items: flex-start;
-            gap: 12px;
+            gap: 0.75rem;
           }
 
           .favorite-actions {
@@ -1891,17 +1896,17 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
           }
 
           .favorite-schedule-preview {
-            padding: 0 14px 14px 14px;
+            padding: 0 0.875rem 0.875rem 0.875rem;
           }
         }
 
         @media (max-width: 420px) {
           .controls-section {
-            padding: 0 8px;
+            padding: 0 0.5rem;
           }
 
           .semester-toggle button {
-            padding: 5px 10px;
+            padding: 0.3125rem 0.625rem;
             font-size: 0.75rem;
           }
 
@@ -1916,7 +1921,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
           .course-tag {
             padding: 0.25em 0.6em;
             font-size: 0.78rem;
-            gap: 4px;
+            gap: 0.25rem;
           }
 
           .generate-section {
@@ -1930,11 +1935,11 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
 
           .error-wrapper {
             margin-top: 0.8rem;
-            padding: 0 8px;
+            padding: 0 0.5rem;
           }
 
           .error-message {
-            padding: 8px 12px;
+            padding: 0.5rem 0.75rem;
             font-size: 0.8rem;
           }
         }

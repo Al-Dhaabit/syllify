@@ -4,7 +4,7 @@ import { stemmer } from "porter-stemmer";
 import {
   FaEnvelope,
   FaLinkedin,
-  FaRegLightbulb,
+  FaLightbulb,
   FaCoffee,
   FaClock,
   FaChevronDown,
@@ -1677,7 +1677,7 @@ function App() {
                       title="Search tips"
                       aria-label="Search tips"
                     >
-                      <FaRegLightbulb />
+                      <FaLightbulb />
                     </button>
                     <button
                       className="action-icon"
