@@ -215,7 +215,7 @@ function getLatestClassTime(schedule) {
     let maxTime = 0;
     for (const section of schedule) {
         const endTime = parseTime(section.timeend);
-        if (endTime > maxTime) {
+        if (endTime && endTime > maxTime) {
             maxTime = endTime;
         }
     }
@@ -340,9 +340,16 @@ export function generateSchedules(
 
     const courseKeys = Object.keys(courseBundles);
     const preferredProfessors = preferences.preferredProfessors || [];
-    const endByTime = preferences.endBy
-        ? parseTime(preferences.endBy.toUpperCase())
-        : null;
+
+    // Convert preference format (e.g., '1pm') to parseTime format (e.g., '1:00 PM')
+    let endByTime = null;
+    if (preferences.endBy) {
+        const timeStr = preferences.endBy.toLowerCase();
+        const hour = timeStr.replace(/[ap]m/, '');
+        const ampm = timeStr.includes('pm') ? 'PM' : 'AM';
+        const formattedTime = `${hour}:00 ${ampm}`;
+        endByTime = parseTime(formattedTime);
+    }
 
     function scoreSchedule(schedule) {
         let score = 0;
@@ -623,7 +630,14 @@ export function checkPreferences(schedule, preferences) {
 
     // Check End By
     if (preferences.endBy) {
-        const endByTime = parseTime(preferences.endBy.toUpperCase());
+        // Convert preference format (e.g., '1pm') to parseTime format (e.g., '1:00 PM')
+        const timeStr = preferences.endBy.toLowerCase();
+        const hour = timeStr.replace(/[ap]m/, '');
+        const ampm = timeStr.includes('pm') ? 'PM' : 'AM';
+        const formattedTime = `${hour}:00 ${ampm}`;
+
+        const endByTime = parseTime(formattedTime);
+
         if (endByTime) {
             const latestTime = getLatestClassTime(schedule);
             result.endBy = latestTime <= endByTime;
