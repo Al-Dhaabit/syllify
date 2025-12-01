@@ -1871,6 +1871,29 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
           }
         }
 
+        @media (max-width: 600px) {
+          .pagination-bar {
+            gap: 0.7rem;
+            margin: 1.2rem 0 0.7rem 0;
+          }
+
+          .pagination-arrow {
+            padding: 0.5em 0.7em;
+            font-size: 1rem;
+            border-radius: 10px;
+          }
+
+          .pagination-page {
+            gap: 6px;
+            padding: 0.25em 0.6em;
+          }
+
+          .pagination-input {
+            width: 48px;
+            font-size: 0.95rem;
+          }
+        }
+
         @media (max-width: 480px) {
           .controls-section {
             padding: 0 10px;
@@ -2008,6 +2031,20 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
             width: 45px;
             padding: 5px 6px;
             font-size: 0.9rem;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .pagination-bar {
+            gap: 0.5rem;
+            margin-top: 16px;
+            padding: 10px;
+          }
+
+          .pagination-arrow {
+            padding: 0.4em 0.6em;
+            font-size: 0.95rem;
+            border-radius: 8px;
           }
         }
 
