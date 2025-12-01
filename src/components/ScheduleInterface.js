@@ -1995,7 +1995,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
 
           .pagination-arrow {
             padding: 8px 12px;
-            font-size: 0.95rem;
+            font-size: 1rem;
             min-width: 40px;
             min-height: 40px;
           }
