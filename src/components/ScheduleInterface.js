@@ -1315,7 +1315,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
         .preferences-toggle:hover,
         .preferences-toggle.active {
           background: rgba(140, 151, 247, 0.12);
-          border-color: #ffcf7a;
+          border-color: rgba(140, 151, 247, 0.35);
           color: #fff;
         }
 

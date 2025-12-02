@@ -1,9 +1,8 @@
 import React, { useRef, useMemo, useState, useEffect } from 'react';
-import html2canvas from 'html2canvas';
 import { FaDownload, FaHeart, FaRegHeart, FaCopy, FaCheck, FaCalendarPlus, FaTimes } from 'react-icons/fa';
 
 const COLORS = [
-  { bg: '#FF6B6B', text: '#FFF' },
+  { bg: '#d62424ff', text: '#FFF' },
   { bg: '#4361EE', text: '#FFF' },
   { bg: '#ffcf7a', text: '#000' },
   { bg: '#7209B7', text: '#FFF' },
@@ -89,84 +88,333 @@ const ScheduleView = ({
     return colorMap;
   }, [schedule]);
 
-  const captureSchedule = async () => {
-    if (!scheduleRef.current) return null;
+  const getInstructor = (section) => {
+    return (
+      section.instructor ||
+      section.prof ||
+      section.professor ||
+      section.teacher ||
+      ''
+    ).toString().trim();
+  };
 
-    // Prevent page expansion during capture
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+  // Memoize sectionsByDay for both rendering and export
+  const sectionsByDay = useMemo(() => {
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+    const dayMap = { M: 0, T: 1, W: 2, R: 3, F: 4 };
+    const sections = days.map(() => []);
 
-    // Create a clone to render off-screen (prevents layout shift/animation)
-    const clone = scheduleRef.current.cloneNode(true);
+    schedule.forEach((section) => {
+      const courseCode =
+        (section.subject || section.subj || '') +
+        (section.cat || section.number || '');
+      const sectionNum = section.section || section.sec || section.sect || '';
 
-    // Explicitly set styles to ensure visibility for html2canvas
-    // We use a wrapper to ensure we don't mess up the document layout
-    Object.assign(clone.style, {
-      display: 'block',
-      visibility: 'visible', // CRITICAL: html2canvas ignores hidden elements
-      opacity: '1',
-      position: 'fixed',
-      left: '-10000px', // Move far off-screen
-      top: '0',
-      width: 'fit-content', // Allow it to expand to fit content
-      minWidth: '1000px', // Ensure at least desktop width
-      height: 'auto',
-      overflow: 'visible', // Ensure nothing is clipped
-      zIndex: '-1000',
-      transform: 'none',
-      pointerEvents: 'none',
-      backgroundColor: '#1e1e28', // Ensure background is set on the element
-      padding: '20px', // Add some padding around the capture
+      const instructor = getInstructor(section);
+
+      const sectionDays = section.days || '';
+
+      for (let char of sectionDays.toUpperCase()) {
+        const dayIndex = dayMap[char];
+        if (dayIndex !== undefined) {
+          sections[dayIndex].push({
+            ...section,
+            courseCode,
+            sectionNum,
+            instructor,
+            colorStyle: courseColorMap[courseCode],
+            isHighlighted: highlightIds.includes(`${courseCode}-${sectionNum}`),
+          });
+        }
+      }
     });
 
-    document.body.appendChild(clone);
+    sections.forEach((daySections) => {
+      daySections.sort(
+        (a, b) =>
+          getMinutesFromMidnight(a.timestart) -
+          getMinutesFromMidnight(b.timestart)
+      );
+    });
 
-    try {
-      // Wait for a microtask to ensure DOM updates
-      await new Promise(resolve => setTimeout(resolve, 10));
+    return sections;
+  }, [schedule, highlightIds, courseColorMap, getMinutesFromMidnight]);
 
-      // Get the actual size of the clone to set canvas dimensions
-      const rect = clone.getBoundingClientRect();
+  const drawScheduleToCanvas = async () => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
 
-      const canvas = await html2canvas(clone, {
-        backgroundColor: '#0f1327', // Theme background
-        scale: 2,
-        logging: false,
-        useCORS: true,
-        windowWidth: Math.max(1200, rect.width + 100), // Ensure window is wide enough
-        width: rect.width, // Match the actual width
-        height: rect.height, // Match the actual height
-        x: 0,
-        y: 0,
-        scrollX: 0,
-        scrollY: 0,
-        onclone: (clonedDoc, element) => {
-          // Double check visibility inside the clone
-          element.style.display = 'block';
-          element.style.visibility = 'visible';
-          element.style.overflow = 'visible'; // Ensure overflow is visible in clone
-        }
-      });
-      return canvas;
-    } catch (err) {
-      console.error('html2canvas capture failed:', err);
-      return null;
-    } finally {
-      if (document.body.contains(clone)) {
-        document.body.removeChild(clone);
+    // Configuration for High-Res Export - Optimized for Readability
+    const SCALE = 2; // 2x resolution for sharpness
+    const WIDTH = 1800; // Slightly wider
+    const PADDING = 50;
+    const HEADER_HEIGHT = 100;
+    const FOOTER_HEIGHT = 120;
+    const HOUR_HEIGHT = 150; // Taller slots to fit larger text comfortably
+    const TIME_COL_WIDTH = 140; // Wider for larger time labels
+
+    const numHours = endHour - startHour;
+    const GRID_HEIGHT = numHours * HOUR_HEIGHT;
+    const TOTAL_WIDTH = WIDTH + (PADDING * 2);
+    const TOTAL_HEIGHT = HEADER_HEIGHT + GRID_HEIGHT + FOOTER_HEIGHT + (PADDING * 2);
+    const DAY_COL_WIDTH = (WIDTH - TIME_COL_WIDTH) / 5;
+
+    // Set canvas dimensions
+    canvas.width = TOTAL_WIDTH * SCALE;
+    canvas.height = TOTAL_HEIGHT * SCALE;
+    ctx.scale(SCALE, SCALE);
+
+    // 1. Background
+    ctx.fillStyle = '#1a1b23'; // Dark theme background
+    ctx.fillRect(0, 0, TOTAL_WIDTH, TOTAL_HEIGHT);
+
+    // Helper for rounded rects
+    const roundRect = (x, y, w, h, r) => {
+      if (w < 2 * r) r = w / 2;
+      if (h < 2 * r) r = h / 2;
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    };
+
+    // 2. Draw Grid & Headers
+    ctx.font = 'bold 24px Inter, sans-serif'; // Larger Header Font
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const startX = PADDING + TIME_COL_WIDTH;
+    const startY = PADDING + HEADER_HEIGHT;
+
+    // Day Headers
+    const days = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'];
+    ctx.fillStyle = '#8b9bb4';
+    days.forEach((day, i) => {
+      const x = startX + (i * DAY_COL_WIDTH) + (DAY_COL_WIDTH / 2);
+      ctx.fillText(day, x, PADDING + (HEADER_HEIGHT / 2));
+    });
+
+    // Time Column & Horizontal Lines
+    ctx.font = '600 18px Inter, sans-serif'; // Larger Time Font
+    ctx.fillStyle = '#64748b';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.lineWidth = 1;
+
+    for (let i = 0; i <= numHours; i++) {
+      const y = startY + (i * HOUR_HEIGHT);
+
+      // Horizontal Line
+      ctx.beginPath();
+      ctx.moveTo(PADDING, y);
+      ctx.lineTo(TOTAL_WIDTH - PADDING, y);
+      ctx.stroke();
+
+      // Time Label (skip last one)
+      if (i < numHours) {
+        const hour = startHour + i;
+        const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+        const period = hour >= 12 ? 'PM' : 'AM';
+        ctx.fillText(`${displayHour} ${period}`, PADDING + (TIME_COL_WIDTH / 2), y + 20);
       }
-      document.body.style.overflow = originalOverflow;
     }
+
+    // Vertical Lines
+    for (let i = 0; i <= 5; i++) {
+      const x = startX + (i * DAY_COL_WIDTH);
+      ctx.beginPath();
+      ctx.moveTo(x, startY);
+      ctx.lineTo(x, startY + GRID_HEIGHT);
+      ctx.stroke();
+    }
+
+    // 3. Draw Courses
+    sectionsByDay.forEach((daySections, dayIndex) => {
+      daySections.forEach(section => {
+        const startMin = getMinutesFromMidnight(section.timestart);
+        const endMin = getMinutesFromMidnight(section.timeend);
+
+        const minutesFromStart = startMin - (startHour * 60);
+        const durationMinutes = endMin - startMin;
+
+        const x = startX + (dayIndex * DAY_COL_WIDTH) + 6; // More padding
+        const y = startY + ((minutesFromStart / 60) * HOUR_HEIGHT);
+        const w = DAY_COL_WIDTH - 12; // More padding
+        const h = (durationMinutes / 60) * HOUR_HEIGHT;
+
+        // Shadow
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetY = 4;
+
+        // Card Background
+        ctx.fillStyle = section.colorStyle.bg;
+        roundRect(x, y, w, h, 10); // Slightly larger radius
+        ctx.fill();
+
+        // Reset Shadow
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
+
+        // Content
+        ctx.fillStyle = section.colorStyle.text;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+
+        // Clipping region for text
+        ctx.save();
+        roundRect(x, y, w, h, 10);
+        ctx.clip();
+
+        let textY = y + 14;
+        const textX = x + 14;
+
+        // Course Code - Larger
+        ctx.font = 'bold 22px Inter, sans-serif';
+        ctx.fillText(`${section.courseCode}-${section.sectionNum}`, textX, textY);
+        textY += 28;
+
+        // Instructor - Larger
+        if (section.instructor) {
+          ctx.font = '500 18px Inter, sans-serif';
+          ctx.fillText(section.instructor, textX, textY);
+          textY += 24;
+        }
+
+        // Time - Larger
+        ctx.font = '500 18px Inter, sans-serif';
+        ctx.fillText(`${section.timestart} - ${section.timeend}`, textX, textY);
+        textY += 24;
+
+        // Room - Larger
+        const room = getRoom(section);
+        if (room !== 'TBA') {
+          ctx.font = '500 18px Inter, sans-serif';
+          ctx.fillText(`📍 ${room}`, textX, textY);
+        }
+
+        ctx.restore();
+      });
+    });
+
+    // 4. Footer
+    const footerPaddingTop = 68; // Matches 32px * 2.14
+    const footerY = startY + GRID_HEIGHT + footerPaddingTop;
+
+    // Badge Styles - Matching CSS .schedule-credits-badge and .semester-badge
+    // CSS: height ~30px, radius 12px, font 13px/14px, padding 6px 12px
+    const badgeHeight = 46;
+    const badgeRadius = 20;
+    const badgeFontSize = '600 24px Inter, sans-serif';
+    const badgePaddingX = 20; // Matches 12px * 2.14
+    const badgeGap = 28; // Matches 16px gap * 2.14
+
+    // Calculate vertical center for all footer elements
+    const footerCenterY = footerY + (badgeHeight / 2);
+
+    // Credits Badge
+    const totalCredits = schedule.reduce((sum, section) => sum + (parseFloat(section.Crdt || section.crdt || section.credits || 0)), 0);
+    if (totalCredits > 0) {
+      const badgeText = `${totalCredits} Credits`; // Note: CSS has "Credits" in normal weight, but canvas simple text is fine for now
+      ctx.font = badgeFontSize;
+      const textMetrics = ctx.measureText(badgeText);
+      const badgeW = textMetrics.width + (badgePaddingX * 2);
+
+      ctx.fillStyle = 'rgba(140, 151, 247, 0.15)'; // Matches CSS
+      ctx.strokeStyle = 'rgba(140, 151, 247, 0.3)'; // Matches CSS
+      ctx.lineWidth = 2;
+      roundRect(PADDING, footerY, badgeW, badgeHeight, badgeRadius);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#8c97f7'; // Matches CSS
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(badgeText, PADDING + (badgeW / 2), footerCenterY);
+    }
+
+    // Semester Badge
+    if (semester) {
+      const semText = semester === 'spring26' ? "Spring '26" : "Fall '25";
+
+      let startX = PADDING;
+      if (totalCredits > 0) {
+        ctx.font = badgeFontSize;
+        const credText = `${totalCredits} Credits`;
+        const credMetrics = ctx.measureText(credText);
+        const credBadgeW = credMetrics.width + (badgePaddingX * 2);
+        startX += credBadgeW + badgeGap;
+      }
+
+      ctx.font = badgeFontSize;
+      const textMetrics = ctx.measureText(semText);
+      const badgeW = textMetrics.width + (badgePaddingX * 2);
+
+      ctx.fillStyle = 'rgba(255, 207, 122, 0.15)'; // Matches CSS
+      ctx.strokeStyle = 'rgba(255, 207, 122, 0.3)'; // Matches CSS
+      ctx.lineWidth = 2;
+      roundRect(startX, footerY, badgeW, badgeHeight, badgeRadius);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffcf7a'; // Matches CSS
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(semText, startX + (badgeW / 2), footerCenterY);
+    }
+
+    // Branding with Logo
+    // CSS: font-size 13px, logo height 22px
+    const brandingText = 'Made using Syllify.info';
+    const brandingFontSize = '600 28px Inter, sans-serif'; // Matches 13px * 2.14
+    ctx.font = brandingFontSize;
+    const brandingMetrics = ctx.measureText(brandingText);
+    const brandingX = TOTAL_WIDTH - PADDING;
+
+    // Draw Text
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'; // Matches CSS color
+    ctx.fillText(brandingText, brandingX, footerCenterY);
+
+    // Draw Logo
+    try {
+      const logoImg = new Image();
+      logoImg.src = '/logo.png';
+      await new Promise((resolve, reject) => {
+        logoImg.onload = resolve;
+        logoImg.onerror = reject;
+        setTimeout(resolve, 1000);
+      });
+
+      // Draw logo to the left of the text, vertically centered
+      const logoH = 47; // Matches 22px * 2.14
+      const logoW = (logoImg.width / logoImg.height) * logoH;
+      const logoGap = 17; // Matches 8px * 2.14
+      const logoX = brandingX - brandingMetrics.width - logoW - logoGap;
+      const logoY = footerCenterY - (logoH / 2);
+
+      ctx.globalAlpha = 0.85; // Matches CSS opacity
+      ctx.drawImage(logoImg, logoX, logoY, logoW, logoH);
+      ctx.globalAlpha = 1.0;
+    } catch (e) {
+      console.warn('Failed to load logo for export', e);
+    }
+
+    return canvas;
   };
 
   const handleExport = async () => {
-    const canvas = await captureSchedule();
+    const canvas = await drawScheduleToCanvas();
     if (!canvas) return;
 
     const link = document.createElement('a');
     const name = favoriteName ? favoriteName.replace(/[^a-z0-9_\-\s]/gi, '').trim() : `schedule-${scheduleIndex + 1}`;
     link.download = `${name}.png`;
-    link.href = canvas.toDataURL();
+    link.href = canvas.toDataURL('image/png');
     link.click();
   };
 
@@ -185,66 +433,30 @@ const ScheduleView = ({
     }
 
     try {
-      // Try the modern Promise-based approach first (Required for Safari)
-      try {
-        const item = new ClipboardItem({
-          'image/png': new Promise(async (resolve, reject) => {
-            try {
-              const canvas = await captureSchedule();
-              if (!canvas) {
-                reject(new Error('Failed to capture schedule'));
-                return;
-              }
-              canvas.toBlob((blob) => {
-                if (blob) resolve(blob);
-                else reject(new Error('Failed to create blob'));
-              }, 'image/png');
-            } catch (err) {
-              reject(err);
-            }
-          })
-        });
-        await navigator.clipboard.write([item]);
-        setCopySuccess(true);
-        setTimeout(() => setCopySuccess(false), 2000);
-        return; // Success!
-      } catch (promiseErr) {
-        console.warn('Promise-based ClipboardItem failed, trying fallback:', promiseErr);
-        // If the Promise approach fails (e.g. not supported in some browsers),
-        // fall back to the standard Blob approach.
-        // Note: This might fail on Safari if capture takes too long, but it's our best backup.
-      }
+      const canvas = await drawScheduleToCanvas();
+      if (!canvas) throw new Error('Failed to generate schedule image');
 
-      // Fallback: Generate blob first, then write
-      const canvas = await captureSchedule();
-      if (!canvas) throw new Error('Failed to capture schedule');
-
-      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
-      if (!blob) throw new Error('Failed to create blob');
-
-      await navigator.clipboard.write([
-        new ClipboardItem({
-          'image/png': blob,
-        }),
-      ]);
-
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000);
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          alert('Failed to create image blob.');
+          return;
+        }
+        try {
+          const item = new ClipboardItem({ 'image/png': blob });
+          await navigator.clipboard.write([item]);
+          setCopySuccess(true);
+          setTimeout(() => setCopySuccess(false), 2000);
+        } catch (err) {
+          console.error('Clipboard write failed:', err);
+          handleExport(); // Fallback
+          alert('Failed to copy to clipboard. Image downloaded instead.');
+        }
+      }, 'image/png');
 
     } catch (err) {
       console.error('Copy failed:', err);
-
-      // Final Fallback: download the image
       handleExport();
-
-      // Provide a more helpful error message
-      let msg = 'Copy to clipboard failed. Image has been downloaded instead.';
-      if (err.name === 'NotAllowedError') {
-        msg = 'Clipboard write permission denied. Image downloaded instead.';
-      } else if (err.message) {
-        msg += ` (${err.message})`;
-      }
-      alert(msg);
+      alert('Copy failed. Image downloaded instead.');
     }
   };
 
@@ -316,18 +528,31 @@ const ScheduleView = ({
         const endMin = getMinutesFromMidnight(section.timeend);
         const duration = endMin - startMin;
 
-        // Calculate start date (next occurrence)
-        const firstDayCode = sectionDays[0];
-        const targetDayIndex = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'].indexOf(firstDayCode);
+        // Find the next occurrence of ANY of the section's days
+        const now = new Date();
+        const currentDayIndex = now.getDay();
+        const currentTimeInMinutes = now.getHours() * 60 + now.getMinutes();
 
-        let startDate = new Date();
-        const currentDayIndex = startDate.getDay();
-        let daysToAdd = (targetDayIndex - currentDayIndex + 7) % 7;
-        // Ensure we start from at least today or tomorrow
-        if (daysToAdd === 0 && (startDate.getHours() * 60 + startDate.getMinutes()) > startMin) {
-          daysToAdd = 7;
+        // Convert section days to numeric indices
+        const dayIndices = sectionDays.map(dayCode =>
+          ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'].indexOf(dayCode)
+        );
+
+        // Find the earliest upcoming occurrence
+        let daysToAdd = 7; // Default to next week if nothing found
+        for (const targetDayIndex of dayIndices) {
+          let daysUntilTarget = (targetDayIndex - currentDayIndex + 7) % 7;
+          // If it's today but the class time has passed, skip to next week
+          if (daysUntilTarget === 0 && currentTimeInMinutes > startMin) {
+            daysUntilTarget = 7;
+          }
+          // Use the earliest occurrence
+          if (daysUntilTarget < daysToAdd) {
+            daysToAdd = daysUntilTarget;
+          }
         }
 
+        const startDate = new Date(now);
         startDate.setDate(startDate.getDate() + daysToAdd);
         const startHour = Math.floor(startMin / 60);
         const startMinute = startMin % 60;
@@ -408,51 +633,8 @@ const ScheduleView = ({
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
   const daysShort = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-  const dayMap = { M: 0, T: 1, W: 2, R: 3, F: 4 };
 
-  const getInstructor = (section) => {
-    return (
-      section.instructor ||
-      section.prof ||
-      section.professor ||
-      section.teacher ||
-      ''
-    )
-      .toString()
-      .trim();
-  };
 
-  const sectionsByDay = days.map(() => []);
-  schedule.forEach((section) => {
-    const courseCode =
-      (section.subject || section.subj || '') +
-      (section.cat || section.number || '');
-    const sectionNum = section.section || section.sec || section.sect || '';
-    const instructor = getInstructor(section);
-    const sectionDays = section.days || '';
-
-    for (let char of sectionDays.toUpperCase()) {
-      const dayIndex = dayMap[char];
-      if (dayIndex !== undefined) {
-        sectionsByDay[dayIndex].push({
-          ...section,
-          courseCode,
-          sectionNum,
-          instructor,
-          colorStyle: courseColorMap[courseCode],
-          isHighlighted: highlightIds.includes(`${courseCode}-${sectionNum}`),
-        });
-      }
-    }
-  });
-
-  sectionsByDay.forEach((daySections) => {
-    daySections.sort(
-      (a, b) =>
-        getMinutesFromMidnight(a.timestart) -
-        getMinutesFromMidnight(b.timestart)
-    );
-  });
 
   const formatHour = (hour) => {
     const displayHour = hour % 12 === 0 ? 12 : hour % 12;
@@ -956,7 +1138,7 @@ const ScheduleView = ({
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 24px 8px 6px 8px;
+          padding: 32px 0 16px 0;
           gap: 16px;
           flex-wrap: wrap;
         }
@@ -1169,7 +1351,6 @@ const ScheduleView = ({
           }
           .watermark {
             font-size: 13px;
-            padding: 14px 8px 8px 8px;
             justify-content: center;
           }
           .watermark-logo {
