@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useState, useEffect } from 'react';
+import React, { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import { FaDownload, FaHeart, FaRegHeart, FaCopy, FaCheck, FaCalendarPlus, FaTimes } from 'react-icons/fa';
 
 const COLORS = [
@@ -28,13 +28,14 @@ const ScheduleView = ({
   activePreferences = {},
 }) => {
   const scheduleRef = useRef(null);
+  const logoRef = useRef(null); // Ref to store preloaded logo
   const [showNameInput, setShowNameInput] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
   const [calendarSuccess, setCalendarSuccess] = useState(false);
   const hourHeight = 70;
 
-  const getMinutesFromMidnight = (timeStr) => {
+  const getMinutesFromMidnight = useCallback((timeStr) => {
     if (!timeStr) return 0;
     const match = timeStr.match(/(\d{1,2}):(\d{2})\s?(AM|PM)/i);
     if (!match) return 0;
@@ -44,7 +45,7 @@ const ScheduleView = ({
     if (ap.toUpperCase() === 'PM' && h !== 12) h += 12;
     if (ap.toUpperCase() === 'AM' && h === 12) h = 0;
     return h * 60 + m;
-  };
+  }, []);
 
   const { startHour, endHour } = useMemo(() => {
     let earliest = 24 * 60;
@@ -65,7 +66,7 @@ const ScheduleView = ({
     const endHour = Math.min(24, Math.ceil(latest / 60) + 1);
 
     return { startHour, endHour };
-  }, [schedule]);
+  }, [schedule, getMinutesFromMidnight]);
 
 
 
@@ -140,7 +141,7 @@ const ScheduleView = ({
     return sections;
   }, [schedule, highlightIds, courseColorMap, getMinutesFromMidnight]);
 
-  const drawScheduleToCanvas = async () => {
+  const drawScheduleToCanvas = () => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
 
@@ -381,34 +382,30 @@ const ScheduleView = ({
     ctx.fillText(brandingText, brandingX, footerCenterY);
 
     // Draw Logo
-    try {
-      const logoImg = new Image();
-      logoImg.src = '/logo.png';
-      await new Promise((resolve, reject) => {
-        logoImg.onload = resolve;
-        logoImg.onerror = reject;
-        setTimeout(resolve, 1000);
-      });
+    // Draw Logo
+    if (logoRef.current) {
+      try {
+        const logoImg = logoRef.current;
+        // Draw logo to the left of the text, vertically centered
+        const logoH = 47; // Matches 22px * 2.14
+        const logoW = (logoImg.width / logoImg.height) * logoH;
+        const logoGap = 17; // Matches 8px * 2.14
+        const logoX = brandingX - brandingMetrics.width - logoW - logoGap;
+        const logoY = footerCenterY - (logoH / 2);
 
-      // Draw logo to the left of the text, vertically centered
-      const logoH = 47; // Matches 22px * 2.14
-      const logoW = (logoImg.width / logoImg.height) * logoH;
-      const logoGap = 17; // Matches 8px * 2.14
-      const logoX = brandingX - brandingMetrics.width - logoW - logoGap;
-      const logoY = footerCenterY - (logoH / 2);
-
-      ctx.globalAlpha = 0.85; // Matches CSS opacity
-      ctx.drawImage(logoImg, logoX, logoY, logoW, logoH);
-      ctx.globalAlpha = 1.0;
-    } catch (e) {
-      console.warn('Failed to load logo for export', e);
+        ctx.globalAlpha = 0.85; // Matches CSS opacity
+        ctx.drawImage(logoImg, logoX, logoY, logoW, logoH);
+        ctx.globalAlpha = 1.0;
+      } catch (e) {
+        console.warn('Failed to draw logo', e);
+      }
     }
 
     return canvas;
   };
 
-  const handleExport = async () => {
-    const canvas = await drawScheduleToCanvas();
+  const handleExport = () => {
+    const canvas = drawScheduleToCanvas();
     if (!canvas) return;
 
     const link = document.createElement('a');
@@ -416,6 +413,18 @@ const ScheduleView = ({
     link.download = `${name}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
+  };
+
+  // Helper to convert Data URI to Blob synchronously
+  const dataURItoBlob = (dataURI) => {
+    const byteString = atob(dataURI.split(',')[1]);
+    const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: mimeString });
   };
 
   const handleCopy = async () => {
@@ -433,30 +442,29 @@ const ScheduleView = ({
     }
 
     try {
-      const canvas = await drawScheduleToCanvas();
+      // Synchronous canvas generation
+      const canvas = drawScheduleToCanvas();
       if (!canvas) throw new Error('Failed to generate schedule image');
 
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          alert('Failed to create image blob.');
-          return;
-        }
-        try {
-          const item = new ClipboardItem({ 'image/png': blob });
-          await navigator.clipboard.write([item]);
-          setCopySuccess(true);
-          setTimeout(() => setCopySuccess(false), 2000);
-        } catch (err) {
-          console.error('Clipboard write failed:', err);
-          handleExport(); // Fallback
-          alert('Failed to copy to clipboard. Image downloaded instead.');
-        }
-      }, 'image/png');
+      // Synchronous Blob conversion
+      const dataUrl = canvas.toDataURL('image/png');
+      const blob = dataURItoBlob(dataUrl);
+
+      if (!blob) {
+        alert('Failed to create image blob.');
+        return;
+      }
+
+      const item = new ClipboardItem({ 'image/png': blob });
+      await navigator.clipboard.write([item]);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
 
     } catch (err) {
       console.error('Copy failed:', err);
       handleExport();
-      alert('Copy failed. Image downloaded instead.');
+      // More specific error for debugging
+      alert(`Copy failed: ${err.message}. Image downloaded instead.`);
     }
   };
 
@@ -476,6 +484,15 @@ const ScheduleView = ({
       });
     };
     loadScripts();
+  }, []);
+
+  // Preload Logo for Synchronous Export
+  useEffect(() => {
+    const img = new Image();
+    img.src = '/logo.png';
+    img.onload = () => {
+      logoRef.current = img;
+    };
   }, []);
 
   const getRoom = (section) => {
