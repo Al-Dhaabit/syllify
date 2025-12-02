@@ -867,7 +867,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
         )}
 
         <div className="results-section">
-          {schedules.length > 0 && (
+          {!showFavorites && schedules.length > 0 && (
             <div className="schedules-list">
               {isPartial ? (
                 <div className="warning-message">
