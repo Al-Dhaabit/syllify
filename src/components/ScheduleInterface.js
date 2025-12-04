@@ -159,6 +159,13 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
 
   // Welcome Modal State
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 600);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 600);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const hasSeenModal = localStorage.getItem('coursalog_schedule_welcome_seen');
@@ -797,7 +804,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
                 type="text"
                 value={courseInput}
                 onChange={(e) => setCourseInput(e.target.value)}
-                placeholder="Courses (e.g. MATH181 ENGL211) or Professor Name (e.g. Rik Rolster)"
+                placeholder={isMobile ? "Course codes or Professor names" : "Courses (e.g. MATH181 ENGL211) or Professor names (e.g. Rik Rolster)"}
                 className="search-input"
               />
               <button
