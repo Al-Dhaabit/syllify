@@ -26,6 +26,7 @@ const ScheduleView = ({
   semester = '', // New prop
   satisfiedPreferences = {},
   activePreferences = {},
+  professorMode = null, // Professor name if in professor mode
 }) => {
   const scheduleRef = useRef(null);
   const logoRef = useRef(null); // Ref to store preloaded logo
@@ -578,10 +579,25 @@ const ScheduleView = ({
         const endDate = new Date(startDate);
         endDate.setMinutes(endDate.getMinutes() + duration);
 
-        // Recurrence: Forever (no UNTIL date)
-        // const untilDate = new Date(startDate);
-        // untilDate.setMonth(untilDate.getMonth() + 4);
-        // const untilStr = untilDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+        // Semester-based end date for recurrence
+        const currentDate = new Date();
+        let untilDate;
+        if (semester === 'spring26') {
+          // Spring ends May 31st
+          untilDate = new Date(currentDate.getFullYear(), 4, 31, 23, 59, 59); // Month is 0-indexed, so 4 = May
+          // If we're past May, it's next year's spring
+          if (currentDate > untilDate) {
+            untilDate.setFullYear(untilDate.getFullYear() + 1);
+          }
+        } else {
+          // Fall ends December 31st
+          untilDate = new Date(currentDate.getFullYear(), 11, 31, 23, 59, 59); // 11 = December
+          // If we're past December 31st, something is off, but handle it
+          if (currentDate > untilDate) {
+            untilDate.setFullYear(untilDate.getFullYear() + 1);
+          }
+        }
+        const untilStr = untilDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 
         const courseCode = (section.subject || section.subj || '') + (section.cat || section.number || '');
         const sectionNum = section.section || section.sec || section.sect || '';
@@ -604,7 +620,7 @@ const ScheduleView = ({
             'timeZone': Intl.DateTimeFormat().resolvedOptions().timeZone
           },
           'recurrence': [
-            `RRULE:FREQ=WEEKLY;BYDAY=${sectionDays.join(',')}`
+            `RRULE:FREQ=WEEKLY;BYDAY=${sectionDays.join(',')};UNTIL=${untilStr}`
           ],
         };
 

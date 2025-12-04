@@ -94,7 +94,7 @@ function getBundleEarliestTime(bundle) {
     return minTime === Infinity ? 0 : minTime;
 }
 
-function getInstructor(row) {
+export function getInstructor(row) {
     return (row.instructor || row.prof || row.professor || row.teacher || '')
         .toString()
         .trim();
@@ -285,6 +285,112 @@ function getDayBalanceScore(schedule) {
         counts.reduce((sum, c) => sum + Math.pow(c - avg, 2), 0) / counts.length;
 
     return spread * 100 + variance * 50;
+}
+
+// Exported scoring function for re-sorting schedules when preferences change
+export function scoreSchedule(schedule, preferences = {}) {
+    let score = 0;
+
+    const latestTime = getLatestClassTime(schedule);
+    const earliestTime = getEarliestClassTime(schedule);
+    const totalGap = getTotalGapTime(schedule);
+    const dayImbalance = getDayBalanceScore(schedule);
+
+    // 1. PRIMARY: Earliest End Time
+    const maxPossibleEnd = 1320;
+    const endScore = Math.pow(maxPossibleEnd - latestTime, 2) / 100;
+    score += endScore;
+
+    // 2. SECONDARY: Prefer later start times
+    if (earliestTime >= 540) {
+        score += 500;
+    } else if (earliestTime >= 480) {
+        score += 200;
+    }
+    score += Math.min(earliestTime - 420, 180);
+
+    // 3. TERTIARY: Compact schedule (less gaps)
+    score -= totalGap / 6;
+
+    // 4. Day Balance: Penalize uneven distribution
+    score -= dayImbalance;
+
+    // 5. Preferences: End By Time
+    if (preferences.endBy) {
+        const timeStr = preferences.endBy.toLowerCase();
+        const hour = timeStr.replace(/[ap]m/, '');
+        const ampm = timeStr.includes('pm') ? 'PM' : 'AM';
+        const formattedTime = `${hour}:00 ${ampm}`;
+        const endByTime = parseTime(formattedTime);
+
+        if (endByTime) {
+            if (latestTime <= endByTime) {
+                score += 1000000;
+            } else {
+                const overtime = latestTime - endByTime;
+                score -= overtime * 5;
+            }
+        }
+    }
+
+    // 6. Preferences: No Fridays
+    if (preferences.noFridays) {
+        let fridayCount = 0;
+        for (const section of schedule) {
+            const days = parseDays(section.days || '');
+            if (days.includes(5)) fridayCount++;
+        }
+
+        if (fridayCount === 0) {
+            score += 1000000;
+        } else {
+            score -= fridayCount * 500;
+        }
+    }
+
+    // 7. Preferences: No 9am Classes
+    if (preferences.no9am) {
+        let nineAmCount = 0;
+        const nineAmStart = 540;
+        const nineAmEnd = 600;
+
+        for (const section of schedule) {
+            const start = parseTime(section.timestart);
+            const end = parseTime(section.timeend);
+
+            if (start !== null && end !== null) {
+                if (start < nineAmEnd && end > nineAmStart) {
+                    nineAmCount++;
+                }
+            }
+        }
+
+        if (nineAmCount === 0) {
+            score += 1000000;
+        } else {
+            score -= nineAmCount * 500;
+        }
+    }
+
+    // 8. Preferred Professors
+    const preferredProfessors = preferences.preferredProfessors || [];
+    if (preferredProfessors.length > 0) {
+        for (const section of schedule) {
+            const instructor = getInstructor(section).toLowerCase();
+            for (const preferred of preferredProfessors) {
+                const preferredLower = preferred.toLowerCase().trim();
+                if (
+                    instructor.includes(preferredLower) ||
+                    preferredLower.includes(instructor)
+                ) {
+                    score += 50000;
+                    break;
+                }
+            }
+        }
+    }
+
+    return score;
 }
 
 export function generateSchedules(

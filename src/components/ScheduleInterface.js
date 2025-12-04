@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { generateSchedules, refreshSchedule, getScheduleHash, checkPreferences } from '../utils/scheduler';
+import { generateSchedules, refreshSchedule, getScheduleHash, checkPreferences, getInstructor, scoreSchedule } from '../utils/scheduler';
+import { levenshtein } from '../utils/stringUtils';
 import ScheduleView from './ScheduleView';
 import {
   FaPlus,
@@ -12,7 +13,39 @@ import {
   FaHeart,
   FaArrowLeft,
   FaArrowRight,
+  FaChalkboardTeacher,
 } from 'react-icons/fa';
+
+const findProfessor = (query, data) => {
+  if (!query || !data) return null;
+  const normalizedQuery = query.toLowerCase().trim();
+  if (normalizedQuery.length < 3) return null;
+
+  const instructors = new Set();
+  data.forEach(row => {
+    const name = getInstructor(row);
+    if (name && name !== 'TBA') instructors.add(name);
+  });
+
+  let bestMatch = null;
+  let minDistance = Infinity;
+
+  for (const instructor of instructors) {
+    const normalizedInstructor = instructor.toLowerCase();
+
+    if (normalizedInstructor === normalizedQuery) return instructor;
+    if (normalizedInstructor.includes(normalizedQuery)) return instructor;
+
+    const dist = levenshtein(normalizedQuery, normalizedInstructor);
+    const threshold = Math.max(2, Math.floor(instructor.length / 4));
+
+    if (dist <= threshold && dist < minDistance) {
+      minDistance = dist;
+      bestMatch = instructor;
+    }
+  }
+  return bestMatch;
+};
 
 const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
   // Lazy initialize state from localStorage
@@ -46,6 +79,15 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
 
   const [showPreferences, setShowPreferences] = useState(false);
   const preferencesRef = useRef(null);
+  const [professorMode, setProfessorMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('coursalog_state');
+      return saved ? (JSON.parse(saved).professorMode || null) : null;
+    } catch (e) { return null; }
+  });
+
+  // Store pending professor name when they don't teach in current semester
+  const [pendingProfessor, setPendingProfessor] = useState(null);
 
   // Lazy initialize results state
   const [isPartial, setIsPartial] = useState(() => {
@@ -189,13 +231,14 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
       courseInput,
       selectedCourses,
       preferences,
+      professorMode,
     };
     try {
       localStorage.setItem('coursalog_state', JSON.stringify(stateToSave));
     } catch (e) {
       console.error('Failed to save state:', e);
     }
-  }, [semester, courseInput, selectedCourses, preferences]);
+  }, [semester, courseInput, selectedCourses, preferences, professorMode]);
 
   // Save schedule results whenever they change
   useEffect(() => {
@@ -215,11 +258,74 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
     }
   }, [schedules, error, isPartial, coursesFound, totalCourses, currentPage]);
 
+  // Re-sort schedules when preferences change (without regenerating)
+  useEffect(() => {
+    if (schedules.length > 1 && !professorMode) {
+      const sorted = [...schedules].sort((a, b) =>
+        scoreSchedule(b, preferences) - scoreSchedule(a, preferences)
+      );
+      // Only update if the order actually changed
+      const orderChanged = sorted.some((s, i) => s !== schedules[i]);
+      if (orderChanged) {
+        setSchedules(sorted);
+        setCurrentPage(1);
+      }
+    }
+  }, [preferences]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     // Don't clear results on initial mount (when loading from localStorage)
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
+    }
+
+    if (professorMode) {
+      const newData = semester === 'fall25' ? sheetData : sheetDataSpring;
+
+      // If data isn't loaded yet, don't do anything (keep current state)
+      if (!newData || newData.length === 0) return;
+
+      // Try to find the professor in the new semester data
+      // We use the exact name stored in professorMode
+      const profSchedule = newData.filter(row => getInstructor(row) === professorMode);
+
+      if (profSchedule.length > 0) {
+        setSchedules([profSchedule]);
+        setCoursesFound(profSchedule.length);
+        setTotalCourses(profSchedule.length);
+        setError(null);
+        setIsPartial(false);
+        setCurrentPage(1);
+        return;
+      } else {
+        // Professor not found in new semester
+        setSchedules([]);
+        setCoursesFound(0);
+        setTotalCourses(0);
+        setError(`No schedule found for ${professorMode} in ${semester === 'fall25' ? "Fall '25" : "Spring '26"}`);
+        return;
+      }
+    }
+
+    // Check if there's a pending professor search from wrong semester
+    if (pendingProfessor) {
+      const newData = semester === 'fall25' ? sheetData : sheetDataSpring;
+      if (!newData || newData.length === 0) return;
+
+      const profSchedule = newData.filter(row => getInstructor(row) === pendingProfessor);
+      if (profSchedule.length > 0) {
+        setSchedules([profSchedule]);
+        setProfessorMode(pendingProfessor);
+        setCoursesFound(profSchedule.length);
+        setTotalCourses(profSchedule.length);
+        setError(null);
+        setIsPartial(false);
+        setCurrentPage(1);
+        setPendingProfessor(null);
+        return;
+      }
+      // Still not found, keep pending
     }
 
     setSchedules([]);
@@ -231,7 +337,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
     // Note: We don't need to manually save to localStorage here because
     // updating the state variables (setSchedules, etc.) will trigger
     // the useEffect above which handles the saving.
-  }, [semester]);
+  }, [semester, professorMode, pendingProfessor, sheetData, sheetDataSpring]);
 
   // Initial conflict check for existing favorites when data loads
   useEffect(() => {
@@ -414,9 +520,61 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
     e.preventDefault();
     if (!courseInput.trim()) return;
 
-    const code = courseInput.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-    if (code && !selectedCourses.includes(code)) {
-      setSelectedCourses([...selectedCourses, code]);
+    // Check for professor match in BOTH semesters (to identify if it's a professor name)
+    const professorMatchActive = findProfessor(courseInput, activeSheetData);
+    const otherSheetData = semester === 'fall25' ? sheetDataSpring : sheetData;
+    const professorMatchOther = findProfessor(courseInput, otherSheetData);
+
+    // If it's a professor name in either semester
+    if (professorMatchActive || professorMatchOther) {
+      if (professorMatchActive) {
+        // Professor found in current semester - show their schedule
+        const profSchedule = activeSheetData.filter(row => getInstructor(row) === professorMatchActive);
+        if (profSchedule.length > 0) {
+          setSchedules([profSchedule]);
+          setProfessorMode(professorMatchActive);
+          setSelectedCourses([]);
+          setCourseInput('');
+          setError(null);
+          setIsPartial(false);
+          setCoursesFound(profSchedule.length);
+          setTotalCourses(profSchedule.length);
+
+          // Add to history
+          const historyEntry = {
+            id: Date.now(),
+            timestamp: new Date().toISOString(),
+            professorName: professorMatchActive,
+            semester: semester,
+            scheduleCount: 1,
+            isPartial: false,
+          };
+          const newHistory = [historyEntry, ...scheduleHistory].slice(0, 10);
+          setScheduleHistory(newHistory);
+          localStorage.setItem('scheduleHistory', JSON.stringify(newHistory));
+          return;
+        }
+      } else {
+        // Professor exists but not in current semester - save for when they switch
+        const semesterName = semester === 'fall25' ? "Fall '25" : "Spring '26";
+        setError(`${professorMatchOther} doesn't teach in ${semesterName}.`);
+        setSchedules([]);
+        setProfessorMode(null);
+        setPendingProfessor(professorMatchOther); // Save for semester switch
+        setCourseInput('');
+        return;
+      }
+    }
+
+    setProfessorMode(null);
+    // Support multiple space-separated course codes
+    const inputCodes = courseInput.trim().toUpperCase().split(/\s+/);
+    const newCodes = inputCodes
+      .map(c => c.replace(/[^A-Z0-9]/g, ''))
+      .filter(c => c && !selectedCourses.includes(c));
+
+    if (newCodes.length > 0) {
+      setSelectedCourses([...selectedCourses, ...newCodes]);
     }
     setCourseInput('');
   };
@@ -505,7 +663,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
                 type="text"
                 value={courseInput}
                 onChange={(e) => setCourseInput(e.target.value)}
-                placeholder="Enter Course Code (e.g. MATH181)"
+                placeholder="Courses (e.g. MATH181 ENGL211) or Professor Name (e.g. John Doe)"
                 className="search-input"
               />
               <button
@@ -559,62 +717,76 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
                   <div className="preferences-dropdown">
                     <div className="pref-header">Preferences</div>
 
-                    <label className="pref-item">
-                      <div className="pref-label">
-                        <span>No Fridays</span>
+                    {professorMode ? (
+                      <div style={{
+                        padding: '12px 14px',
+                        color: 'rgba(255, 255, 255, 0.6)',
+                        fontSize: '0.85rem',
+                        lineHeight: '1.4',
+                        fontStyle: 'italic',
+                      }}>
+                        Preferences don't apply to professor schedules.
                       </div>
-                      <button
-                        className={`checkbox-btn ${preferences.noFridays ? 'checked' : ''}`}
-                        onClick={() =>
-                          setPreferences({
-                            ...preferences,
-                            noFridays: !preferences.noFridays,
-                          })
-                        }
-                      >
-                        {preferences.noFridays && <FaCheck />}
-                      </button>
-                    </label>
+                    ) : (
+                      <>
+                        <label className="pref-item">
+                          <div className="pref-label">
+                            <span>No Fridays</span>
+                          </div>
+                          <button
+                            className={`checkbox-btn ${preferences.noFridays ? 'checked' : ''}`}
+                            onClick={() =>
+                              setPreferences({
+                                ...preferences,
+                                noFridays: !preferences.noFridays,
+                              })
+                            }
+                          >
+                            {preferences.noFridays && <FaCheck />}
+                          </button>
+                        </label>
 
-                    <label className="pref-item">
-                      <div className="pref-label">
-                        <span>No 9AM Classes</span>
-                      </div>
-                      <button
-                        className={`checkbox-btn ${preferences.no9am ? 'checked' : ''}`}
-                        onClick={() =>
-                          setPreferences({
-                            ...preferences,
-                            no9am: !preferences.no9am,
-                          })
-                        }
-                      >
-                        {preferences.no9am && <FaCheck />}
-                      </button>
-                    </label>
+                        <label className="pref-item">
+                          <div className="pref-label">
+                            <span>No 9AM Classes</span>
+                          </div>
+                          <button
+                            className={`checkbox-btn ${preferences.no9am ? 'checked' : ''}`}
+                            onClick={() =>
+                              setPreferences({
+                                ...preferences,
+                                no9am: !preferences.no9am,
+                              })
+                            }
+                          >
+                            {preferences.no9am && <FaCheck />}
+                          </button>
+                        </label>
 
-                    <div className="pref-divider" />
+                        <div className="pref-divider" />
 
-                    <div className="pref-section-title">End Classes By</div>
+                        <div className="pref-section-title">End Classes By</div>
 
-                    {['1pm', '3pm', '4pm'].map((time) => (
-                      <label key={time} className="pref-item">
-                        <div className="pref-label">
-                          <span>{time.toUpperCase()}</span>
-                        </div>
-                        <button
-                          className={`checkbox-btn ${preferences.endBy === time ? 'checked' : ''}`}
-                          onClick={() =>
-                            setPreferences({
-                              ...preferences,
-                              endBy: preferences.endBy === time ? null : time,
-                            })
-                          }
-                        >
-                          {preferences.endBy === time && <FaCheck />}
-                        </button>
-                      </label>
-                    ))}
+                        {['1pm', '3pm', '4pm'].map((time) => (
+                          <label key={time} className="pref-item">
+                            <div className="pref-label">
+                              <span>{time.toUpperCase()}</span>
+                            </div>
+                            <button
+                              className={`checkbox-btn ${preferences.endBy === time ? 'checked' : ''}`}
+                              onClick={() =>
+                                setPreferences({
+                                  ...preferences,
+                                  endBy: preferences.endBy === time ? null : time,
+                                })
+                              }
+                            >
+                              {preferences.endBy === time && <FaCheck />}
+                            </button>
+                          </label>
+                        ))}
+                      </>
+                    )}
                   </div>
                 )}
               </div>
@@ -845,20 +1017,43 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
                 key={entry.id}
                 className="history-item"
                 onClick={() => {
-                  setSelectedCourses(entry.courses);
-                  setPreferences(entry.preferences);
-                  if (entry.semester) setSemester(entry.semester);
+                  if (entry.professorName) {
+                    // Professor history entry
+                    const data = entry.semester === 'spring26' ? sheetDataSpring : sheetData;
+                    const profSchedule = data.filter(row => getInstructor(row) === entry.professorName);
+                    if (profSchedule.length > 0) {
+                      setSchedules([profSchedule]);
+                      setProfessorMode(entry.professorName);
+                      setSelectedCourses([]);
+                      setError(null);
+                      setIsPartial(false);
+                      setCoursesFound(profSchedule.length);
+                      setTotalCourses(profSchedule.length);
+                    } else {
+                      setError(`No schedule found for ${entry.professorName}`);
+                    }
+                    if (entry.semester) setSemester(entry.semester);
+                  } else {
+                    // Course history entry
+                    setProfessorMode(null);
+                    setSelectedCourses(entry.courses || []);
+                    setPreferences(entry.preferences || {});
+                    if (entry.semester) setSemester(entry.semester);
+                  }
                   setShowHistory(false);
                 }}
               >
                 <div className="history-courses">
-                  {entry.courses.join(', ')}
+                  {entry.professorName ? (
+                    <><FaChalkboardTeacher style={{ marginRight: '6px', color: 'inherit' }} />{entry.professorName}</>
+                  ) : (
+                    entry.courses?.join(', ')
+                  )}
                 </div>
                 <div className="history-meta">
                   {entry.semester === 'spring26' ? "Spring '26" : "Fall '25"} •{' '}
                   {new Date(entry.timestamp).toLocaleDateString()} •{' '}
-                  {entry.scheduleCount} schedule
-                  {entry.scheduleCount !== 1 ? 's' : ''}
+                  {entry.professorName ? 'Professor' : `${entry.scheduleCount} schedule${entry.scheduleCount !== 1 ? 's' : ''}`}
                   {entry.isPartial && ' (Partial)'}
                 </div>
               </div>
@@ -881,8 +1076,14 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
                 </div>
               ) : (
                 <h3 className="results-heading">
-                  Found {schedules.length} valid schedule
-                  {schedules.length !== 1 ? 's' : ''}
+                  {professorMode ? (
+                    <>
+                      <FaChalkboardTeacher style={{ marginRight: '8px', color: '#ffcf7a' }} />
+                      Schedule for {professorMode}
+                    </>
+                  ) : (
+                    <>Found {schedules.length} valid schedule{schedules.length !== 1 ? 's' : ''}</>
+                  )}
                 </h3>
               )}
 
@@ -920,6 +1121,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
                     semester={semester}
                     satisfiedPreferences={checkPreferences(schedule, preferences)}
                     activePreferences={preferences}
+                    professorMode={professorMode}
                   />
                 </div>
               ))}
