@@ -520,6 +520,14 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
     e.preventDefault();
     if (!courseInput.trim()) return;
 
+    // Easter egg for John Doe
+    if (courseInput.trim().toLowerCase() === 'john doe') {
+      setError("Why'd you actually search for John Doe? 🙄");
+      setSchedules([]);
+      setCourseInput('');
+      return;
+    }
+
     // Check for professor match in BOTH semesters (to identify if it's a professor name)
     const professorMatchActive = findProfessor(courseInput, activeSheetData);
     const otherSheetData = semester === 'fall25' ? sheetDataSpring : sheetData;
