@@ -36,6 +36,18 @@ const ScheduleView = ({
   const [calendarSuccess, setCalendarSuccess] = useState(false);
   const hourHeight = 70;
 
+  // Determine if this is a multi-professor search and extract the actual professor name
+  const isMultiProfessorMode = professorMode && professorMode.includes('professors matching');
+  const displayProfessorName = useMemo(() => {
+    if (!professorMode) return null;
+    if (isMultiProfessorMode && schedule.length > 0) {
+      // Extract professor name from first section of this schedule
+      const firstInstructor = schedule[0]?.instructor || schedule[0]?.prof || schedule[0]?.professor || schedule[0]?.teacher || '';
+      return firstInstructor.toString().trim() || 'Unknown Professor';
+    }
+    return professorMode;
+  }, [professorMode, isMultiProfessorMode, schedule]);
+
   const getMinutesFromMidnight = useCallback((timeStr) => {
     if (!timeStr) return 0;
     const match = timeStr.match(/(\d{1,2}):(\d{2})\s?(AM|PM)/i);
@@ -701,7 +713,11 @@ const ScheduleView = ({
         <div className="schedule-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <h3>
-              {favoriteName || `Option ${scheduleIndex + 1} of ${totalSchedules}`}
+              {favoriteName
+                ? favoriteName
+                : isMultiProfessorMode
+                  ? displayProfessorName
+                  : `Option ${scheduleIndex + 1} of ${totalSchedules}`}
             </h3>
           </div>
           <div className="header-actions">

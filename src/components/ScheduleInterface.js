@@ -16,10 +16,11 @@ import {
   FaChalkboardTeacher,
 } from 'react-icons/fa';
 
-const findProfessor = (query, data) => {
-  if (!query || !data) return null;
+// Returns array of all matching professors
+const findProfessors = (query, data) => {
+  if (!query || !data) return [];
   const normalizedQuery = query.toLowerCase().trim();
-  if (normalizedQuery.length < 3) return null;
+  if (normalizedQuery.length < 2) return [];
 
   const instructors = new Set();
   data.forEach(row => {
@@ -27,24 +28,34 @@ const findProfessor = (query, data) => {
     if (name && name !== 'TBA') instructors.add(name);
   });
 
-  let bestMatch = null;
-  let minDistance = Infinity;
+  const matches = [];
 
   for (const instructor of instructors) {
     const normalizedInstructor = instructor.toLowerCase();
 
-    if (normalizedInstructor === normalizedQuery) return instructor;
-    if (normalizedInstructor.includes(normalizedQuery)) return instructor;
+    // Exact match - highest priority
+    if (normalizedInstructor === normalizedQuery) {
+      return [instructor]; // Return only exact match
+    }
 
+    // Substring match
+    if (normalizedInstructor.includes(normalizedQuery)) {
+      matches.push({ name: instructor, score: 0 });
+      continue;
+    }
+
+    // Fuzzy match
     const dist = levenshtein(normalizedQuery, normalizedInstructor);
-    const threshold = Math.max(2, Math.floor(instructor.length / 4));
+    const threshold = Math.max(3, Math.floor(instructor.length / 3));
 
-    if (dist <= threshold && dist < minDistance) {
-      minDistance = dist;
-      bestMatch = instructor;
+    if (dist <= threshold) {
+      matches.push({ name: instructor, score: dist });
     }
   }
-  return bestMatch;
+
+  // Sort by score (lower is better) and return names
+  matches.sort((a, b) => a.score - b.score);
+  return matches.map(m => m.name);
 };
 
 const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
@@ -286,8 +297,40 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
       // If data isn't loaded yet, don't do anything (keep current state)
       if (!newData || newData.length === 0) return;
 
-      // Try to find the professor in the new semester data
-      // We use the exact name stored in professorMode
+      // Check if this is multi-professor mode (professorMode contains "professors matching")
+      const isMultiProfessor = professorMode.includes('professors matching');
+
+      if (isMultiProfessor) {
+        // Extract the search query from the professorMode string
+        const queryMatch = professorMode.match(/"([^"]+)"/);
+        if (queryMatch) {
+          const searchQuery = queryMatch[1];
+          const matches = findProfessors(searchQuery, newData);
+
+          if (matches.length > 0) {
+            const allSchedules = matches.map(profName => {
+              return newData.filter(row => getInstructor(row) === profName);
+            }).filter(schedule => schedule.length > 0);
+
+            if (allSchedules.length > 0) {
+              setSchedules(allSchedules);
+              setProfessorMode(`${matches.length} professors matching "${searchQuery}"`);
+              setCoursesFound(allSchedules.reduce((sum, s) => sum + s.length, 0));
+              setTotalCourses(allSchedules.reduce((sum, s) => sum + s.length, 0));
+              setError(null);
+              setIsPartial(false);
+              setCurrentPage(1);
+              return;
+            }
+          }
+        }
+        // No matches in new semester
+        setSchedules([]);
+        setError(`No matching professors found in ${semester === 'fall25' ? "Fall '25" : "Spring '26"}`);
+        return;
+      }
+
+      // Single professor mode - try to find by exact name
       const profSchedule = newData.filter(row => getInstructor(row) === professorMode);
 
       if (profSchedule.length > 0) {
@@ -328,6 +371,26 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
       // Still not found, keep pending
     }
 
+    // Auto-regenerate schedules when switching semesters if there are selected courses
+    if (selectedCourses.length > 0 && schedules.length > 0) {
+      const newData = semester === 'fall25' ? sheetData : sheetDataSpring;
+      if (!newData || newData.length === 0) return;
+
+      const result = generateSchedules(selectedCourses, newData, preferences);
+      if (result.error) {
+        setError(result.error);
+        setSchedules([]);
+      } else {
+        setSchedules(result.schedules);
+        setIsPartial(result.isPartial);
+        setCoursesFound(result.coursesFound);
+        setTotalCourses(result.totalCourses);
+        setError(null);
+      }
+      setCurrentPage(1);
+      return;
+    }
+
     setSchedules([]);
     setError(null);
     setCurrentPage(1);
@@ -337,7 +400,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
     // Note: We don't need to manually save to localStorage here because
     // updating the state variables (setSchedules, etc.) will trigger
     // the useEffect above which handles the saving.
-  }, [semester, professorMode, pendingProfessor, sheetData, sheetDataSpring]);
+  }, [semester, professorMode, pendingProfessor, sheetData, sheetDataSpring, selectedCourses, preferences]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Initial conflict check for existing favorites when data loads
   useEffect(() => {
@@ -528,47 +591,63 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
       return;
     }
 
-    // Check for professor match in BOTH semesters (to identify if it's a professor name)
-    const professorMatchActive = findProfessor(courseInput, activeSheetData);
+    // Easter egg for Rik Rolster 🎵
+    if (courseInput.trim().toLowerCase() === 'rik rolster') {
+      setError("rik_rolster_easter_egg");
+      setSchedules([]);
+      setCourseInput('');
+      return;
+    }
+
+    // Check for professor matches in BOTH semesters (to identify if it's a professor name)
+    const professorMatchesActive = findProfessors(courseInput, activeSheetData);
     const otherSheetData = semester === 'fall25' ? sheetDataSpring : sheetData;
-    const professorMatchOther = findProfessor(courseInput, otherSheetData);
+    const professorMatchesOther = findProfessors(courseInput, otherSheetData);
 
     // If it's a professor name in either semester
-    if (professorMatchActive || professorMatchOther) {
-      if (professorMatchActive) {
-        // Professor found in current semester - show their schedule
-        const profSchedule = activeSheetData.filter(row => getInstructor(row) === professorMatchActive);
-        if (profSchedule.length > 0) {
-          setSchedules([profSchedule]);
-          setProfessorMode(professorMatchActive);
+    if (professorMatchesActive.length > 0 || professorMatchesOther.length > 0) {
+      if (professorMatchesActive.length > 0) {
+        // Professors found in current semester - show all their schedules
+        const allSchedules = professorMatchesActive.map(profName => {
+          return activeSheetData.filter(row => getInstructor(row) === profName);
+        }).filter(schedule => schedule.length > 0);
+
+        if (allSchedules.length > 0) {
+          setSchedules(allSchedules);
+          // If only one professor matched, enter professor mode with their name
+          // If multiple matched, use a special mode indicator
+          setProfessorMode(professorMatchesActive.length === 1 ? professorMatchesActive[0] : `${professorMatchesActive.length} professors matching "${courseInput}"`);
           setSelectedCourses([]);
           setCourseInput('');
           setError(null);
           setIsPartial(false);
-          setCoursesFound(profSchedule.length);
-          setTotalCourses(profSchedule.length);
+          setCoursesFound(allSchedules.reduce((sum, s) => sum + s.length, 0));
+          setTotalCourses(allSchedules.reduce((sum, s) => sum + s.length, 0));
 
-          // Add to history
-          const historyEntry = {
-            id: Date.now(),
-            timestamp: new Date().toISOString(),
-            professorName: professorMatchActive,
-            semester: semester,
-            scheduleCount: 1,
-            isPartial: false,
-          };
-          const newHistory = [historyEntry, ...scheduleHistory].slice(0, 10);
-          setScheduleHistory(newHistory);
-          localStorage.setItem('scheduleHistory', JSON.stringify(newHistory));
+          // Add to history (only if single match)
+          if (professorMatchesActive.length === 1) {
+            const historyEntry = {
+              id: Date.now(),
+              timestamp: new Date().toISOString(),
+              professorName: professorMatchesActive[0],
+              semester: semester,
+              scheduleCount: 1,
+              isPartial: false,
+            };
+            const newHistory = [historyEntry, ...scheduleHistory].slice(0, 10);
+            setScheduleHistory(newHistory);
+            localStorage.setItem('scheduleHistory', JSON.stringify(newHistory));
+          }
           return;
         }
       } else {
-        // Professor exists but not in current semester - save for when they switch
+        // Professors exist but not in current semester - save for when they switch
         const semesterName = semester === 'fall25' ? "Fall '25" : "Spring '26";
-        setError(`${professorMatchOther} doesn't teach in ${semesterName}.`);
+        const firstMatch = professorMatchesOther[0];
+        setError(`${firstMatch}${professorMatchesOther.length > 1 ? ` and ${professorMatchesOther.length - 1} other(s)` : ''} doesn't teach in ${semesterName}.`);
         setSchedules([]);
         setProfessorMode(null);
-        setPendingProfessor(professorMatchOther); // Save for semester switch
+        setPendingProfessor(firstMatch); // Save first match for semester switch
         setCourseInput('');
         return;
       }
@@ -577,12 +656,59 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
     setProfessorMode(null);
     // Support multiple space-separated course codes
     const inputCodes = courseInput.trim().toUpperCase().split(/\s+/);
-    const newCodes = inputCodes
+    const cleanedCodes = inputCodes
       .map(c => c.replace(/[^A-Z0-9]/g, ''))
       .filter(c => c && !selectedCourses.includes(c));
 
-    if (newCodes.length > 0) {
-      setSelectedCourses([...selectedCourses, ...newCodes]);
+    if (cleanedCodes.length > 0) {
+      // Validate each course code exists
+      const validCodes = [];
+      const notInSemester = []; // Exists in other semester
+      const notExistAtAll = []; // Doesn't exist anywhere
+
+      const otherData = semester === 'fall25' ? sheetDataSpring : sheetData;
+
+      cleanedCodes.forEach(code => {
+        const existsInCurrent = activeSheetData.some(row => {
+          const rowCode = ((row.subject || row.subj || '') + (row.cat || row.number || '')).toUpperCase();
+          return rowCode === code;
+        });
+
+        if (existsInCurrent) {
+          validCodes.push(code);
+        } else {
+          // Check if it exists in the other semester
+          const existsInOther = otherData.some(row => {
+            const rowCode = ((row.subject || row.subj || '') + (row.cat || row.number || '')).toUpperCase();
+            return rowCode === code;
+          });
+
+          if (existsInOther) {
+            notInSemester.push(code);
+          } else {
+            notExistAtAll.push(code);
+          }
+        }
+      });
+
+      // Add valid courses
+      if (validCodes.length > 0) {
+        setSelectedCourses([...selectedCourses, ...validCodes]);
+      }
+
+      // Show appropriate error messages
+      if (notExistAtAll.length > 0) {
+        setError("Uh... that course doesn't exist sir/madam.");
+      } else if (notInSemester.length > 0) {
+        const semesterName = semester === 'fall25' ? "Fall '25" : "Spring '26";
+        if (notInSemester.length === 1) {
+          setError(`${notInSemester[0]} not found in ${semesterName}.`);
+        } else {
+          setError(`${notInSemester.join(', ')} not found in ${semesterName}.`);
+        }
+      } else {
+        setError(null);
+      }
     }
     setCourseInput('');
   };
@@ -671,7 +797,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
                 type="text"
                 value={courseInput}
                 onChange={(e) => setCourseInput(e.target.value)}
-                placeholder="Courses (e.g. MATH181 ENGL211) or Professor Name (e.g. John Doe)"
+                placeholder="Courses (e.g. MATH181 ENGL211) or Professor Name (e.g. Rik Rolster)"
                 className="search-input"
               />
               <button
@@ -894,7 +1020,18 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
       <div className="schedule-content-container">
         {error && (
           <div className="error-wrapper">
-            <div className="error-message">{error}</div>
+            {error === 'rik_rolster_easter_egg' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+                <div className="error-message">Why'd you actually search for Rik Rolster? 😂</div>
+                <img
+                  src="https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExcnVmZXN5dHF0dXFoNmVnaGNvcDFmM3QxZjV6MXFqaWthZXFxcm10NyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/Vuw9m5wXviFIQ/giphy.gif"
+                  alt=""
+                  style={{ maxWidth: '280px', borderRadius: '12px' }}
+                />
+              </div>
+            ) : (
+              <div className="error-message">{error}</div>
+            )}
           </div>
         )}
 
