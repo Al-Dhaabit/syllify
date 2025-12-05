@@ -1,19 +1,41 @@
 // Helper to parse time string "3:00 PM" to minutes from midnight
+// Also handles Google Sheets Date format like "Date(1899,11,30,13,5,0)"
 function parseTime(timeStr) {
     if (!timeStr) return null;
 
-    const match = timeStr.match(/(\d{1,2}):(\d{2})\s?(AM|PM)/i);
-    if (!match) return null;
+    const str = timeStr.toString().trim();
+    if (!str) return null;
 
-    let [, hoursStr, minutesStr, ampm] = match;
-    let hours = parseInt(hoursStr, 10);
-    let minutes = parseInt(minutesStr, 10);
-    ampm = ampm.toUpperCase();
+    // Case 1: Standard format "3:00 PM" or "10:00 AM"
+    const match = str.match(/(\d{1,2}):(\d{2})\s?(AM|PM)/i);
+    if (match) {
+        let [, hoursStr, minutesStr, ampm] = match;
+        let hours = parseInt(hoursStr, 10);
+        let minutes = parseInt(minutesStr, 10);
+        ampm = ampm.toUpperCase();
 
-    if (ampm === 'PM' && hours !== 12) hours += 12;
-    if (ampm === 'AM' && hours === 12) hours = 0;
+        if (ampm === 'PM' && hours !== 12) hours += 12;
+        if (ampm === 'AM' && hours === 12) hours = 0;
 
-    return hours * 60 + minutes;
+        return hours * 60 + minutes;
+    }
+
+    // Case 2: Google Sheets Date format "Date(1899,11,30,13,5,0)"
+    const dateMatch = str.match(/Date\(\d+,\d+,\d+,\s*(\d+),\s*(\d+)/);
+    if (dateMatch) {
+        const hours = parseInt(dateMatch[1], 10);
+        const minutes = parseInt(dateMatch[2], 10);
+        return hours * 60 + minutes;
+    }
+
+    // Case 3: Decimal (fraction of day) - Google Sheets stores times as 0-1 fraction
+    const numVal = parseFloat(str);
+    if (!isNaN(numVal) && numVal >= 0 && numVal <= 1) {
+        const totalMinutes = Math.round(numVal * 24 * 60);
+        return totalMinutes;
+    }
+
+    return null;
 }
 
 // Helper to parse days string "MW", "TR", "F" to array of integers
@@ -140,35 +162,71 @@ function getSectionNum(row) {
 
 function isLabSection(row) {
     const sectionNum = getSectionNum(row);
-    const title = (row.title || row.name || '').toUpperCase();
+    // Check various possible column names for the course title
+    // Headers are normalized in App.js: toLowerCase, no spaces, alphanumeric only
+    const title = (
+        row.title ||
+        row.coursetitle ||
+        row.name ||
+        row.coursename ||
+        row.classtitle ||
+        row.description ||
+        ''
+    ).toString().toUpperCase();
     return sectionNum.includes('L') || title.includes('LAB');
+}
+
+// Check if a section has valid/confirmed time data (not TBD, empty, or invalid)
+export function hasValidTimeData(row) {
+    const days = (row.days || '').toString().trim().toUpperCase();
+    const timeStart = (row.timestart || '').toString().trim().toUpperCase();
+    const timeEnd = (row.timeend || '').toString().trim().toUpperCase();
+
+    // Check if any are empty or TBD
+    if (!days || !timeStart || !timeEnd) return false;
+    if (days === 'TBD' || timeStart === 'TBD' || timeEnd === 'TBD') return false;
+    if (days === 'TBA' || timeStart === 'TBA' || timeEnd === 'TBA') return false;
+
+    // Check if times can actually be parsed
+    const parsedStart = parseTime(timeStart);
+    const parsedEnd = parseTime(timeEnd);
+    if (parsedStart === null || parsedEnd === null) return false;
+
+    // Check if days contain valid day letters
+    const parsedDays = parseDays(days);
+    if (parsedDays.length === 0) return false;
+
+    return true;
 }
 
 function createCourseBundles(sections) {
     const lectures = [];
     const labs = [];
+    const usedLabIndices = new Set(); // Track which labs have been matched
 
-    sections.forEach((section) => {
+    // First pass: categorize sections while preserving original index
+    sections.forEach((section, idx) => {
         if (isLabSection(section)) {
-            labs.push(section);
+            labs.push({ section, originalIndex: idx });
         } else {
-            lectures.push(section);
+            lectures.push({ section, originalIndex: idx });
         }
     });
 
     // No labs - each lecture is its own bundle
     if (labs.length === 0) {
-        return lectures.map((lec) => [lec]);
+        return lectures.map((lec) => [lec.section]);
     }
 
     // No lectures - each lab is its own bundle
     if (lectures.length === 0) {
-        return labs.map((lab) => [lab]);
+        return labs.map((lab) => [lab.section]);
     }
 
     const bundles = [];
 
-    for (const lecture of lectures) {
+    for (const lectureObj of lectures) {
+        const lecture = lectureObj.section;
         const lecSection = getSectionNum(lecture);
         const lecDigits = lecSection.replace(/[^0-9]/g, '');
 
@@ -177,32 +235,88 @@ function createCourseBundles(sections) {
             continue;
         }
 
-        // Pattern: lecture "600" matches lab "60L1"
+        // Strategy 1: Pattern matching (lecture "600" matches lab "60L1")
         // Formula: lab prefix = lecture digits except last
         //          lab number = lecture's last digit + 1
         const lecPrefix = lecDigits.slice(0, -1); // "60" from "600"
         const lecLastDigit = parseInt(lecDigits.slice(-1), 10); // 0 from "600"
         const expectedLabNum = lecLastDigit + 1; // 1
 
-        const matchingLab = labs.find((lab) => {
+        let matchingLab = null;
+        let matchingLabIdx = -1;
+
+        // Try pattern match first (60L1 for 600)
+        for (let i = 0; i < labs.length; i++) {
+            if (usedLabIndices.has(i)) continue;
+
+            const lab = labs[i].section;
             const labSection = getSectionNum(lab);
             // Match format: digits + L + digits (e.g., "60L1")
             const labMatch = labSection.match(/^(\d*)L(\d+)$/i);
-            if (!labMatch) return false;
+            if (!labMatch) continue;
 
             const labPrefix = labMatch[1]; // "60" from "60L1"
             const labNum = parseInt(labMatch[2], 10); // 1 from "60L1"
 
-            return labPrefix === lecPrefix && labNum === expectedLabNum;
-        });
+            if (labPrefix === lecPrefix && labNum === expectedLabNum) {
+                matchingLab = lab;
+                matchingLabIdx = i;
+                break;
+            }
+        }
+
+        // Strategy 2: If no pattern match, check for same-section-number lab
+        // that appears immediately after this lecture in the original spreadsheet order
+        if (!matchingLab) {
+            for (let i = 0; i < labs.length; i++) {
+                if (usedLabIndices.has(i)) continue;
+
+                const labObj = labs[i];
+                const lab = labObj.section;
+                const labSection = getSectionNum(lab);
+
+                // Check if lab has same section number AND is the row right after lecture
+                if (labSection === lecSection && labObj.originalIndex === lectureObj.originalIndex + 1) {
+                    // Already confirmed it's a lab via isLabSection, no need to double-check
+                    matchingLab = lab;
+                    matchingLabIdx = i;
+                    break;
+                }
+            }
+        }
+
+        // Strategy 3: If still no match, check for any lab with same section number
+        // (for cases where row order isn't strictly consecutive)
+        if (!matchingLab) {
+            for (let i = 0; i < labs.length; i++) {
+                if (usedLabIndices.has(i)) continue;
+
+                const lab = labs[i].section;
+                const labSection = getSectionNum(lab);
+
+                if (labSection === lecSection) {
+                    matchingLab = lab;
+                    matchingLabIdx = i;
+                    break;
+                }
+            }
+        }
 
         if (matchingLab) {
             bundles.push([lecture, matchingLab]);
+            usedLabIndices.add(matchingLabIdx);
         } else {
             // No matching lab found - include lecture alone
             bundles.push([lecture]);
         }
     }
+
+    // Add any unmatched labs as standalone bundles
+    labs.forEach((labObj, i) => {
+        if (!usedLabIndices.has(i)) {
+            bundles.push([labObj.section]);
+        }
+    });
 
     if (bundles.length === 0) {
         return sections.map((s) => [s]);
@@ -399,6 +513,7 @@ export function generateSchedules(
     preferences = {}
 ) {
     const courseSections = {};
+    const tbdSections = {}; // Track sections with TBD times per course
 
     const targets = selectedCourseCodes.map((c) =>
         c.toUpperCase().replace(/[^A-Z0-9]/g, '')
@@ -408,15 +523,34 @@ export function generateSchedules(
         const fullCode = getCourseCode(row);
 
         if (targets.includes(fullCode)) {
-            if (!courseSections[fullCode]) {
-                courseSections[fullCode] = [];
+            // Check if this section has valid time data
+            if (hasValidTimeData(row)) {
+                if (!courseSections[fullCode]) {
+                    courseSections[fullCode] = [];
+                }
+                courseSections[fullCode].push(row);
+            } else {
+                // Track TBD sections
+                if (!tbdSections[fullCode]) {
+                    tbdSections[fullCode] = [];
+                }
+                tbdSections[fullCode].push(getSectionNum(row));
             }
-            courseSections[fullCode].push(row);
         }
     });
 
     const foundCodes = Object.keys(courseSections);
-    const missingCodes = targets.filter((t) => !foundCodes.includes(t));
+    const tbdOnlyCodes = targets.filter((t) => !foundCodes.includes(t) && tbdSections[t]);
+    const missingCodes = targets.filter((t) => !foundCodes.includes(t) && !tbdSections[t]);
+
+    // If a course ONLY has TBD sections, report it specially
+    if (tbdOnlyCodes.length > 0) {
+        return {
+            error: `All sections for ${tbdOnlyCodes.join(', ')} have unconfirmed times (TBD). Please try again later.`,
+            schedules: [],
+            tbdCourses: tbdOnlyCodes,
+        };
+    }
 
     if (missingCodes.length > 0) {
         return {
@@ -618,12 +752,16 @@ export function generateSchedules(
 
     const isPartial = maxCourses < courseKeys.length;
 
+    // Collect info about courses that had some TBD sections
+    const coursesWithTbdSections = Object.keys(tbdSections).filter(code => foundCodes.includes(code));
+
     return {
         schedules: bestSchedules, // Return ALL schedules
         isPartial: isPartial,
         coursesFound: maxCourses,
         totalCourses: courseKeys.length,
         error: null,
+        tbdSections: coursesWithTbdSections.length > 0 ? tbdSections : null, // Info about which courses had some TBD sections
     };
 }
 

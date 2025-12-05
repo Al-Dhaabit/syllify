@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { generateSchedules, refreshSchedule, getScheduleHash, checkPreferences, getInstructor, scoreSchedule } from '../utils/scheduler';
+import { generateSchedules, refreshSchedule, getScheduleHash, checkPreferences, getInstructor, scoreSchedule, hasValidTimeData } from '../utils/scheduler';
 import { levenshtein } from '../utils/stringUtils';
 import ScheduleView from './ScheduleView';
 import {
@@ -44,12 +44,16 @@ const findProfessors = (query, data) => {
       continue;
     }
 
-    // Fuzzy match
-    const dist = levenshtein(normalizedQuery, normalizedInstructor);
-    const threshold = Math.max(3, Math.floor(instructor.length / 3));
+    // Fuzzy match - only for longer queries (4+ chars) to avoid too many false positives
+    // Threshold is based on query length, not instructor name length
+    if (normalizedQuery.length >= 4) {
+      const dist = levenshtein(normalizedQuery, normalizedInstructor);
+      // Allow ~25% of query length as edits, minimum 2
+      const threshold = Math.max(2, Math.floor(normalizedQuery.length / 4));
 
-    if (dist <= threshold) {
-      matches.push({ name: instructor, score: dist });
+      if (dist <= threshold) {
+        matches.push({ name: instructor, score: dist });
+      }
     }
   }
 
@@ -137,6 +141,15 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
   });
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [tbdSections, setTbdSections] = useState(null); // Track courses with TBD sections
+
+  // Track if user has clicked Generate at least once (for auto-regeneration on semester switch)
+  const [hasGenerated, setHasGenerated] = useState(() => {
+    try {
+      const saved = localStorage.getItem('coursalog_schedule_results');
+      return saved ? (JSON.parse(saved).hasGenerated || false) : false;
+    } catch (e) { return false; }
+  });
 
   const [scheduleHistory, setScheduleHistory] = useState(() => {
     try {
@@ -268,13 +281,14 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
       coursesFound,
       totalCourses,
       currentPage,
+      hasGenerated,
     };
     try {
       localStorage.setItem('coursalog_schedule_results', JSON.stringify(resultsToSave));
     } catch (e) {
       console.error('Failed to save schedule results:', e);
     }
-  }, [schedules, error, isPartial, coursesFound, totalCourses, currentPage]);
+  }, [schedules, error, isPartial, coursesFound, totalCourses, currentPage, hasGenerated]);
 
   // Re-sort schedules when preferences change (without regenerating)
   useEffect(() => {
@@ -315,18 +329,34 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
           const matches = findProfessors(searchQuery, newData);
 
           if (matches.length > 0) {
+            let excludedSections = [];
             const allSchedules = matches.map(profName => {
-              return newData.filter(row => getInstructor(row) === profName);
+              const allSections = newData.filter(row => getInstructor(row) === profName);
+              return allSections.filter(row => {
+                if (hasValidTimeData(row)) {
+                  return true;
+                } else {
+                  const courseCode = ((row.subject || row.subj || '') + (row.cat || row.number || '')).toUpperCase();
+                  const section = row.section || row.sec || '';
+                  excludedSections.push(`${courseCode}-${section}`);
+                  return false;
+                }
+              });
             }).filter(schedule => schedule.length > 0);
 
             if (allSchedules.length > 0) {
               setSchedules(allSchedules);
               setProfessorMode(`${matches.length} professors matching "${searchQuery}"`);
               setCoursesFound(allSchedules.reduce((sum, s) => sum + s.length, 0));
-              setTotalCourses(allSchedules.reduce((sum, s) => sum + s.length, 0));
-              setError(null);
+              setTotalCourses(allSchedules.reduce((sum, s) => sum + s.length, 0) + excludedSections.length);
+              if (excludedSections.length > 0) {
+                setError(`Some sections have unconfirmed times and were excluded: ${excludedSections.join(', ')}`);
+              } else {
+                setError(null);
+              }
               setIsPartial(false);
               setCurrentPage(1);
+              setTbdSections(null);
               return;
             }
           }
@@ -334,19 +364,44 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
         // No matches in new semester
         setSchedules([]);
         setError(`No matching professors found in ${semester === 'fall25' ? "Fall '25" : "Spring '26"}`);
+        setTbdSections(null);
         return;
       }
 
       // Single professor mode - try to find by exact name
-      const profSchedule = newData.filter(row => getInstructor(row) === professorMode);
+      const allProfSections = newData.filter(row => getInstructor(row) === professorMode);
+      let excludedSections = [];
+      const profSchedule = allProfSections.filter(row => {
+        if (hasValidTimeData(row)) {
+          return true;
+        } else {
+          const courseCode = ((row.subject || row.subj || '') + (row.cat || row.number || '')).toUpperCase();
+          const section = row.section || row.sec || '';
+          excludedSections.push(`${courseCode}-${section}`);
+          return false;
+        }
+      });
 
       if (profSchedule.length > 0) {
         setSchedules([profSchedule]);
         setCoursesFound(profSchedule.length);
-        setTotalCourses(profSchedule.length);
-        setError(null);
+        setTotalCourses(profSchedule.length + excludedSections.length);
+        if (excludedSections.length > 0) {
+          setError(`Some sections have unconfirmed times and were excluded: ${excludedSections.join(', ')}`);
+        } else {
+          setError(null);
+        }
         setIsPartial(false);
         setCurrentPage(1);
+        setTbdSections(null);
+        return;
+      } else if (excludedSections.length > 0) {
+        // All sections had invalid time data
+        setSchedules([]);
+        setCoursesFound(0);
+        setTotalCourses(excludedSections.length);
+        setError(`All of ${professorMode}'s sections have unconfirmed times.`);
+        setTbdSections(null);
         return;
       } else {
         // Professor not found in new semester
@@ -354,6 +409,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
         setCoursesFound(0);
         setTotalCourses(0);
         setError(`No schedule found for ${professorMode} in ${semester === 'fall25' ? "Fall '25" : "Spring '26"}`);
+        setTbdSections(null);
         return;
       }
     }
@@ -363,35 +419,95 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
       const newData = semester === 'fall25' ? sheetData : sheetDataSpring;
       if (!newData || newData.length === 0) return;
 
-      const profSchedule = newData.filter(row => getInstructor(row) === pendingProfessor);
+      const allProfSections = newData.filter(row => getInstructor(row) === pendingProfessor);
+      let excludedSections = [];
+      const profSchedule = allProfSections.filter(row => {
+        if (hasValidTimeData(row)) {
+          return true;
+        } else {
+          const courseCode = ((row.subject || row.subj || '') + (row.cat || row.number || '')).toUpperCase();
+          const section = row.section || row.sec || '';
+          excludedSections.push(`${courseCode}-${section}`);
+          return false;
+        }
+      });
+
       if (profSchedule.length > 0) {
         setSchedules([profSchedule]);
         setProfessorMode(pendingProfessor);
         setCoursesFound(profSchedule.length);
-        setTotalCourses(profSchedule.length);
-        setError(null);
+        setTotalCourses(profSchedule.length + excludedSections.length);
+        if (excludedSections.length > 0) {
+          setError(`Some sections have unconfirmed times and were excluded: ${excludedSections.join(', ')}`);
+        } else {
+          setError(null);
+        }
         setIsPartial(false);
         setCurrentPage(1);
         setPendingProfessor(null);
+        setTbdSections(null);
+        return;
+      } else if (allProfSections.length > 0) {
+        // Professor found but ALL sections have invalid time data
+        setProfessorMode(pendingProfessor);
+        setSchedules([]);
+        setCoursesFound(0);
+        setTotalCourses(excludedSections.length);
+        setError(`All of ${pendingProfessor}'s sections have unconfirmed times.`);
+        setPendingProfessor(null);
+        setTbdSections(null);
         return;
       }
-      // Still not found, keep pending
+      // Professor not found in this semester either, keep pending
     }
 
-    // Auto-regenerate schedules when switching semesters if there are selected courses
-    if (selectedCourses.length > 0 && schedules.length > 0) {
+    // Auto-regenerate schedules when switching semesters if user has generated before
+    if (selectedCourses.length > 0 && hasGenerated) {
       const newData = semester === 'fall25' ? sheetData : sheetDataSpring;
       if (!newData || newData.length === 0) return;
 
+      // Check which courses exist in the new semester
+      const coursesNotInNewSemester = [];
+
+      selectedCourses.forEach(code => {
+        const normalizedCode = code.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const existsInNew = newData.some(row => {
+          const rowCode = ((row.subject || row.subj || '') + (row.cat || row.number || '')).toUpperCase().replace(/[^A-Z0-9]/g, '');
+          return rowCode === normalizedCode;
+        });
+        if (!existsInNew) {
+          coursesNotInNewSemester.push(code);
+        }
+      });
+
+      const semesterName = semester === 'fall25' ? "Fall '25" : "Spring '26";
+
+      // If ANY courses don't exist in this semester, show error and don't generate
+      if (coursesNotInNewSemester.length > 0) {
+        const missingText = coursesNotInNewSemester.length === 1
+          ? `${coursesNotInNewSemester[0]} isn't available in ${semesterName}`
+          : `${coursesNotInNewSemester.join(', ')} aren't available in ${semesterName}`;
+        setError(missingText + ". Switch back or remove unavailable courses.");
+        setSchedules([]);
+        setCurrentPage(1);
+        setIsPartial(false);
+        setTbdSections(null);
+        return;
+      }
+
+      // All courses exist - generate schedules
       const result = generateSchedules(selectedCourses, newData, preferences);
+
       if (result.error) {
         setError(result.error);
         setSchedules([]);
+        setTbdSections(null);
       } else {
         setSchedules(result.schedules);
         setIsPartial(result.isPartial);
         setCoursesFound(result.coursesFound);
         setTotalCourses(result.totalCourses);
+        setTbdSections(result.tbdSections);
         setError(null);
       }
       setCurrentPage(1);
@@ -404,10 +520,11 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
     setIsPartial(false);
     setCoursesFound(0);
     setTotalCourses(0);
+    setTbdSections(null); // Clear TBD warning when resetting
     // Note: We don't need to manually save to localStorage here because
     // updating the state variables (setSchedules, etc.) will trigger
     // the useEffect above which handles the saving.
-  }, [semester, professorMode, pendingProfessor, sheetData, sheetDataSpring, selectedCourses, preferences]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [semester, professorMode, pendingProfessor, sheetData, sheetDataSpring, selectedCourses, preferences, hasGenerated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Initial conflict check for existing favorites when data loads
   useEffect(() => {
@@ -615,8 +732,23 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
     if (professorMatchesActive.length > 0 || professorMatchesOther.length > 0) {
       if (professorMatchesActive.length > 0) {
         // Professors found in current semester - show all their schedules
+        // Filter out sections with invalid time data and track excluded sections
+        let excludedSections = [];
+
         const allSchedules = professorMatchesActive.map(profName => {
-          return activeSheetData.filter(row => getInstructor(row) === profName);
+          const allSections = activeSheetData.filter(row => getInstructor(row) === profName);
+          const validSections = allSections.filter(row => {
+            if (hasValidTimeData(row)) {
+              return true;
+            } else {
+              // Track excluded sections (course code + section number)
+              const courseCode = ((row.subject || row.subj || '') + (row.cat || row.number || '')).toUpperCase();
+              const section = row.section || row.sec || '';
+              excludedSections.push(`${courseCode}-${section}`);
+              return false;
+            }
+          });
+          return validSections;
         }).filter(schedule => schedule.length > 0);
 
         if (allSchedules.length > 0) {
@@ -626,10 +758,17 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
           setProfessorMode(professorMatchesActive.length === 1 ? professorMatchesActive[0] : `${professorMatchesActive.length} professors matching "${courseInput}"`);
           setSelectedCourses([]);
           setCourseInput('');
-          setError(null);
           setIsPartial(false);
           setCoursesFound(allSchedules.reduce((sum, s) => sum + s.length, 0));
-          setTotalCourses(allSchedules.reduce((sum, s) => sum + s.length, 0));
+          setTotalCourses(allSchedules.reduce((sum, s) => sum + s.length, 0) + excludedSections.length);
+
+          // Show warning if any sections were excluded due to invalid time data
+          if (excludedSections.length > 0) {
+            setError(`Some sections have unconfirmed times and were excluded: ${excludedSections.join(', ')}`);
+          } else {
+            setError(null);
+          }
+          setTbdSections(null); // Clear TBD warning (we're using error message instead for professor mode)
 
           // Add to history (only if single match)
           if (professorMatchesActive.length === 1) {
@@ -646,12 +785,21 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
             localStorage.setItem('scheduleHistory', JSON.stringify(newHistory));
           }
           return;
+        } else if (excludedSections.length > 0) {
+          // All sections had invalid time data - still set professor mode for semester switching
+          setProfessorMode(professorMatchesActive[0]);
+          setSelectedCourses([]);
+          setError(`All of ${professorMatchesActive[0]}'s sections have unconfirmed times.`);
+          setSchedules([]);
+          setCourseInput('');
+          return;
         }
       } else {
         // Professors exist but not in current semester - save for when they switch
         const semesterName = semester === 'fall25' ? "Fall '25" : "Spring '26";
+        const otherSemesterName = semester === 'fall25' ? "Spring '26" : "Fall '25";
         const firstMatch = professorMatchesOther[0];
-        setError(`${firstMatch}${professorMatchesOther.length > 1 ? ` and ${professorMatchesOther.length - 1} other(s)` : ''} doesn't teach in ${semesterName}.`);
+        setError(`${firstMatch}${professorMatchesOther.length > 1 ? ` and ${professorMatchesOther.length - 1} other(s)` : ''} teaches in ${otherSemesterName}, not ${semesterName}. Switch semesters to view.`);
         setSchedules([]);
         setProfessorMode(null);
         setPendingProfessor(firstMatch); // Save first match for semester switch
@@ -660,7 +808,6 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
       }
     }
 
-    setProfessorMode(null);
     // Support multiple space-separated course codes
     const inputCodes = courseInput.trim().toUpperCase().split(/\s+/);
     const cleanedCodes = inputCodes
@@ -698,14 +845,20 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
         }
       });
 
-      // Add valid courses
+      // Add valid courses - only exit professor mode if we have valid courses
       if (validCodes.length > 0) {
+        // Exit professor mode and clear professor schedule when switching to course mode
+        if (professorMode) {
+          setProfessorMode(null);
+          setSchedules([]);
+        }
         setSelectedCourses([...selectedCourses, ...validCodes]);
+        setError(null); // Clear any previous error when successfully adding courses
       }
 
-      // Show appropriate error messages
+      // Show appropriate error messages (but keep professor schedule if no valid courses)
       if (notExistAtAll.length > 0) {
-        setError("Uh... that course doesn't exist sir/madam.");
+        setError("Uh... that course/professor doesn't exist sir/madam.");
       } else if (notInSemester.length > 0) {
         const semesterName = semester === 'fall25' ? "Fall '25" : "Spring '26";
         if (notInSemester.length === 1) {
@@ -713,8 +866,6 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
         } else {
           setError(`${notInSemester.join(', ')} not found in ${semesterName}.`);
         }
-      } else {
-        setError(null);
       }
     }
     setCourseInput('');
@@ -730,6 +881,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
     setError(null);
     setIsPartial(false);
     setCurrentPage(1);
+    setHasGenerated(false); // Reset so user needs to click Generate again
   };
 
   const handleGenerate = () => {
@@ -743,6 +895,8 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
     setSchedules([]);
     setIsPartial(false);
     setCurrentPage(1);
+    setTbdSections(null); // Clear TBD sections
+    setHasGenerated(true); // Mark that user has generated at least once
 
     setTimeout(() => {
       const result = generateSchedules(
@@ -753,11 +907,13 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
 
       if (result.error) {
         setError(result.error);
+        setTbdSections(null);
       } else {
         setSchedules(result.schedules);
         setIsPartial(result.isPartial);
         setCoursesFound(result.coursesFound);
         setTotalCourses(result.totalCourses);
+        setTbdSections(result.tbdSections); // Store TBD sections info
 
         const historyEntry = {
           id: Date.now(),
@@ -1042,6 +1198,26 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
           </div>
         )}
 
+        {/* TBD Sections Warning - shown after search/error area */}
+        {tbdSections && Object.keys(tbdSections).length > 0 && !showFavorites && (
+          <div className="warning-message" style={{
+            textAlign: 'left',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            maxWidth: '1000px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            marginBottom: '16px',
+          }}>
+            <FaExclamationTriangle style={{ flexShrink: 0 }} />
+            <div>
+              <strong>Heads up:</strong> Some sections haven't been confirmed yet ({Object.entries(tbdSections).map(([course, sections]) =>
+                `${course}: ${sections.join(', ')}`
+              ).join('; ')}). These were excluded from scheduling.
+            </div>
+          </div>
+        )}
 
         {showFavorites && favorites.length > 0 && (
           <div className="results-section">

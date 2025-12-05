@@ -123,6 +123,14 @@ const ScheduleView = ({
         (section.subject || section.subj || '') +
         (section.cat || section.number || '');
       const sectionNum = section.section || section.sec || section.sect || '';
+      // Get course title from various possible column names
+      const courseTitle = (
+        section.coursename ||
+        section.coursetitle ||
+        section.title ||
+        section.name ||
+        ''
+      ).toString().trim();
 
       const instructor = getInstructor(section);
 
@@ -135,6 +143,7 @@ const ScheduleView = ({
             ...section,
             courseCode,
             sectionNum,
+            courseTitle,
             instructor,
             colorStyle: courseColorMap[courseCode],
             isHighlighted: highlightIds.includes(`${courseCode}-${sectionNum}`),
@@ -258,6 +267,16 @@ const ScheduleView = ({
         const w = DAY_COL_WIDTH - 12; // More padding
         const h = (durationMinutes / 60) * HOUR_HEIGHT;
 
+        // Determine font sizes based on available height
+        const isCompact = durationMinutes <= 60;
+        const isVeryCompact = durationMinutes <= 50;
+
+        // Adjust font sizes for compact blocks
+        const titleFontSize = isVeryCompact ? 18 : (isCompact ? 20 : 22);
+        const infoFontSize = isVeryCompact ? 12 : (isCompact ? 14 : 16);
+        const lineHeight = isVeryCompact ? 16 : (isCompact ? 20 : 22);
+        const padding = isVeryCompact ? 8 : 14;
+
         // Shadow
         ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
         ctx.shadowBlur = 8;
@@ -283,30 +302,37 @@ const ScheduleView = ({
         roundRect(x, y, w, h, 10);
         ctx.clip();
 
-        let textY = y + 14;
-        const textX = x + 14;
+        let textY = y + padding;
+        const textX = x + padding;
 
-        // Course Code - Larger
-        ctx.font = 'bold 22px Inter, sans-serif';
+        // Course Code
+        ctx.font = `bold ${titleFontSize}px Inter, sans-serif`;
         ctx.fillText(`${section.courseCode}-${section.sectionNum}`, textX, textY);
-        textY += 28;
+        textY += titleFontSize + 4;
 
-        // Instructor - Larger
-        if (section.instructor) {
-          ctx.font = '500 18px Inter, sans-serif';
-          ctx.fillText(section.instructor, textX, textY);
-          textY += 24;
+        // Course Title
+        if (section.courseTitle) {
+          ctx.font = `500 ${infoFontSize}px Inter, sans-serif`;
+          ctx.fillText(section.courseTitle, textX, textY);
+          textY += lineHeight;
         }
 
-        // Time - Larger
-        ctx.font = '500 18px Inter, sans-serif';
-        ctx.fillText(`${section.timestart} - ${section.timeend}`, textX, textY);
-        textY += 24;
+        // Instructor
+        if (section.instructor) {
+          ctx.font = `500 ${infoFontSize}px Inter, sans-serif`;
+          ctx.fillText(section.instructor, textX, textY);
+          textY += lineHeight;
+        }
 
-        // Room - Larger
+        // Time
+        ctx.font = `500 ${infoFontSize}px Inter, sans-serif`;
+        ctx.fillText(`${section.timestart} - ${section.timeend}`, textX, textY);
+        textY += lineHeight;
+
+        // Room
         const room = getRoom(section);
         if (room !== 'TBA') {
-          ctx.font = '500 18px Inter, sans-serif';
+          ctx.font = `500 ${infoFontSize}px Inter, sans-serif`;
           ctx.fillText(`📍 ${room}`, textX, textY);
         }
 
@@ -836,6 +862,7 @@ const ScheduleView = ({
                     <div className="mobile-class-name">
                       {section.courseCode}
                       {section.sectionNum && `-${section.sectionNum}`}
+                      {section.courseTitle && ` - ${section.courseTitle}`}
                     </div>
                     <div className="mobile-class-details">
                       <span>
@@ -898,10 +925,14 @@ const ScheduleView = ({
                   const topPx = (minutesFromStart / 60) * hourHeight;
                   const heightPx = (durationMinutes / 60) * hourHeight;
 
+                  // Determine if this is a compact block (short duration)
+                  const isCompact = durationMinutes <= 60;
+                  const isVeryCompact = durationMinutes <= 50;
+
                   return (
                     <div
                       key={`${section.courseCode}-${section.sectionNum}-${idx}`}
-                      className="course-block"
+                      className={`course-block ${isCompact ? 'compact' : ''} ${isVeryCompact ? 'very-compact' : ''}`}
                       style={{
                         backgroundColor: section.colorStyle.bg,
                         color: section.colorStyle.text,
@@ -917,6 +948,9 @@ const ScheduleView = ({
                           {section.courseCode}
                           {section.sectionNum && `-${section.sectionNum}`}
                         </strong>
+                        {section.courseTitle && (
+                          <span className="course-title-text">{section.courseTitle}</span>
+                        )}
                         {section.instructor && (
                           <span>{section.instructor}</span>
                         )}
@@ -1377,6 +1411,25 @@ const ScheduleView = ({
           font-weight: 600 !important;
           opacity: 1 !important;
           margin-top: 1px;
+        }
+        
+        /* Compact course blocks for short classes */
+        .course-block.compact .course-block-content {
+          gap: 0px;
+        }
+        .course-block.compact .course-block-content span {
+          font-size: 7px;
+          line-height: 1.1;
+        }
+        .course-block.very-compact .course-block-content {
+          gap: 0px;
+        }
+        .course-block.very-compact .course-block-content strong {
+          font-size: 9px;
+        }
+        .course-block.very-compact .course-block-content span {
+          font-size: 6px;
+          line-height: 1.0;
         }
 
         @media (min-width: 768px) {
