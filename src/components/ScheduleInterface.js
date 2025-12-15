@@ -1527,51 +1527,29 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
             onClick={() => setShowComparisonFor(null)}
           >
             <div
-              className="coursalog-popup"
+              className="coursalog-popup comparison-modal"
               onClick={e => e.stopPropagation()}
-              style={{
-                maxWidth: '1400px',
-                width: '95vw',
-                height: '90vh',
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden',
-                padding: '24px',
-              }}
             >
-              <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column' }}>
-                <h2 style={{ margin: '0 0 16px 0', fontSize: '1.3rem' }}>Schedule Changes</h2>
+              <div className="comparison-modal-header">
+                <h2>Schedule Changes</h2>
 
                 {/* Conflict Warning */}
                 {fav.hasConflicts && (
-                  <div style={{
-                    background: 'rgba(255, 107, 107, 0.15)',
-                    border: '1px solid rgba(255, 107, 107, 0.4)',
-                    color: '#ff6b6b',
-                    padding: '12px 16px',
-                    borderRadius: '8px',
-                    marginBottom: '16px',
-                    fontSize: '0.95rem',
-                    fontWeight: '600',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    flexWrap: 'wrap',
-                  }}>
+                  <div className="conflict-warning-box">
                     <FaExclamationTriangle />
-                    <span style={{ flex: '1 1 auto', minWidth: '200px' }}>
+                    <span>
                       ⚠️ Time conflict detected! This updated schedule has overlapping courses.
                     </span>
                   </div>
                 )}
               </div>
 
-              <div style={{ flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column', marginTop: '8px', overflowY: 'auto' }}>
-                <h3 style={{ color: '#ffab00', marginTop: 0, marginBottom: '8px', fontSize: '1rem', flex: '0 0 auto' }}>Your Schedule (Before Changes)</h3>
-                <p style={{ fontSize: '0.85rem', color: '#aaa', marginBottom: '10px', marginTop: 0, flex: '0 0 auto' }}>
+              <div className="comparison-modal-content">
+                <h3 className="comparison-subtitle">Your Schedule (Before Changes)</h3>
+                <p className="comparison-description">
                   This is how your schedule looked before the updates. Changed sections are highlighted.
                 </p>
-                <div style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', paddingRight: '8px' }}>
+                <div className="comparison-schedule-wrapper">
                   {fav.previousSchedule ? (
                     <ScheduleView
                       schedule={fav.previousSchedule}
@@ -1580,7 +1558,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
                       semester={fav.semester}
                     />
                   ) : (
-                    <div style={{ padding: '20px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', textAlign: 'center' }}>
+                    <div className="no-schedule-placeholder">
                       Original schedule data not available.
                     </div>
                   )}
@@ -1588,36 +1566,27 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
 
                 {/* Change Summary - Now at the bottom */}
                 {fav.changeDetails && fav.changeDetails.length > 0 && (
-                  <div style={{
-                    background: 'rgba(255, 171, 0, 0.1)',
-                    border: '1px solid rgba(255, 171, 0, 0.3)',
-                    borderRadius: '12px',
-                    padding: '12px 16px',
-                    marginTop: '16px',
-                    flex: '0 0 auto',
-                  }}>
-                    <h3 style={{ color: '#ffab00', marginTop: 0, marginBottom: '8px', fontSize: '0.95rem' }}>Changes Summary</h3>
+                  <div className="change-summary-section">
+                    <h3>Changes Summary</h3>
                     {fav.changeDetails.map((change, idx) => (
-                      <div key={idx} style={{
-                        marginBottom: '12px',
-                        paddingBottom: '12px',
+                      <div key={idx} className="change-item" style={{
                         borderBottom: idx < fav.changeDetails.length - 1 ? '1px solid rgba(255, 171, 0, 0.2)' : 'none'
                       }}>
-                        <div style={{ fontWeight: '600', color: '#fff', marginBottom: '6px' }}>
+                        <div className="change-course-code">
                           {change.courseCode} {change.section && `- Section ${change.section}`}
                         </div>
                         {change.type === 'removed' ? (
-                          <div style={{ color: '#ff6b6b', fontSize: '0.9rem' }}>
+                          <div className="change-removed">
                             ⚠️ This section has been removed from the course catalog
                           </div>
                         ) : (
-                          <div style={{ fontSize: '0.85rem', color: '#ddd' }}>
+                          <div className="change-details">
                             {Object.entries(change.changes).map(([field, values]) => (
-                              <div key={field} style={{ marginBottom: '4px' }}>
-                                <span style={{ color: '#ffab00', textTransform: 'capitalize' }}>{field}:</span>{' '}
-                                <span style={{ color: '#ff9999', textDecoration: 'line-through' }}>{values.old || '(empty)'}</span>
+                              <div key={field} className="change-field">
+                                <span className="change-field-name">{field}:</span>{' '}
+                                <span className="change-old-value">{values.old || '(empty)'}</span>
                                 {' → '}
-                                <span style={{ color: '#99ff99' }}>{values.new || '(empty)'}</span>
+                                <span className="change-new-value">{values.new || '(empty)'}</span>
                               </div>
                             ))}
                           </div>
@@ -2485,6 +2454,190 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
           .clear-all-btn,
           .favorite-action-btn {
             transition: none;
+          }
+        }
+
+        /* Comparison Modal Styles */
+        .comparison-modal {
+          max-width: 1400px !important;
+          width: 95vw !important;
+          max-height: 90vh;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          padding: 24px !important;
+          border-radius: 1.5rem !important;
+        }
+
+        .comparison-modal-header {
+          flex: 0 0 auto;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .comparison-modal h2 {
+          margin: 0 0 16px 0 !important;
+          font-size: 1.3rem !important;
+        }
+
+        .conflict-warning-box {
+          background: rgba(255, 107, 107, 0.15);
+          border: 1px solid rgba(255, 107, 107, 0.4);
+          color: #ff6b6b;
+          padding: 12px 16px;
+          border-radius: 8px;
+          margin-bottom: 16px;
+          font-size: 0.95rem;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .comparison-modal-content {
+          flex: 1 1 auto;
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
+          margin-top: 8px;
+          overflow-y: auto;
+        }
+
+        .comparison-subtitle {
+          color: #ffab00;
+          margin: 0 0 8px 0;
+          font-size: 1rem;
+          flex: 0 0 auto;
+        }
+
+        .comparison-description {
+          font-size: 0.85rem;
+          color: #aaa;
+          margin: 0 0 10px 0;
+          flex: 0 0 auto;
+        }
+
+        .comparison-schedule-wrapper {
+          flex: 1 1 auto;
+          min-height: 0;
+          overflow-y: auto;
+          padding-right: 8px;
+        }
+
+        .no-schedule-placeholder {
+          padding: 20px;
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 8px;
+          text-align: center;
+        }
+
+        .change-summary-section {
+          background: rgba(255, 171, 0, 0.1);
+          border: 1px solid rgba(255, 171, 0, 0.3);
+          border-radius: 12px;
+          padding: 12px 16px;
+          margin-top: 16px;
+          flex: 0 0 auto;
+        }
+
+        .change-summary-section h3 {
+          color: #ffab00;
+          margin: 0 0 8px 0;
+          font-size: 0.95rem;
+        }
+
+        .change-item {
+          margin-bottom: 12px;
+          padding-bottom: 12px;
+        }
+
+        .change-course-code {
+          font-weight: 600;
+          color: #fff;
+          margin-bottom: 6px;
+        }
+
+        .change-removed {
+          color: #ff6b6b;
+          font-size: 0.9rem;
+        }
+
+        .change-details {
+          font-size: 0.85rem;
+          color: #ddd;
+        }
+
+        .change-field {
+          margin-bottom: 4px;
+        }
+
+        .change-field-name {
+          color: #ffab00;
+          text-transform: capitalize;
+        }
+
+        .change-old-value {
+          color: #ff9999;
+          text-decoration: line-through;
+        }
+
+        .change-new-value {
+          color: #99ff99;
+        }
+
+        @media (max-width: 600px) {
+          .comparison-modal {
+            width: 100vw !important;
+            max-width: 100vw !important;
+            max-height: 100vh;
+            height: 100vh;
+            border-radius: 0 !important;
+            padding: 16px !important;
+          }
+
+          .comparison-modal h2 {
+            font-size: 1.1rem !important;
+            margin-bottom: 12px !important;
+          }
+
+          .conflict-warning-box {
+            padding: 10px 12px;
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+          }
+
+          .comparison-subtitle {
+            font-size: 0.9rem;
+          }
+
+          .comparison-description {
+            font-size: 0.8rem;
+          }
+
+          .change-summary-section {
+            padding: 10px 12px;
+            margin-top: 12px;
+          }
+
+          .change-summary-section h3 {
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+          }
+
+          .change-item {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            font-size: 0.85rem;
+          }
+
+          .change-course-code {
+            font-size: 0.9rem;
+          }
+
+          .change-removed,
+          .change-details {
+            font-size: 0.8rem;
           }
         }
       `}</style>

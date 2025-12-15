@@ -204,6 +204,27 @@ const ScheduleView = ({
       ctx.closePath();
     };
 
+    // Helper to draw text with auto-scaling font size to fit within maxWidth
+    // Returns the actual line height used
+    const drawFittedText = (text, x, y, maxWidth, baseFontSize, fontWeight = '500', minFontSize = 8) => {
+      if (!text) return 0;
+
+      let fontSize = baseFontSize;
+      ctx.font = `${fontWeight} ${fontSize}px Inter, sans-serif`;
+      let textWidth = ctx.measureText(text).width;
+
+      // Scale down font if text is too wide
+      if (textWidth > maxWidth && fontSize > minFontSize) {
+        // Calculate the scale factor needed
+        const scale = maxWidth / textWidth;
+        fontSize = Math.max(minFontSize, Math.floor(baseFontSize * scale));
+        ctx.font = `${fontWeight} ${fontSize}px Inter, sans-serif`;
+      }
+
+      ctx.fillText(text, x, y);
+      return fontSize + 4; // Return line height (font size + spacing)
+    };
+
     // 2. Draw Grid & Headers
     ctx.font = 'bold 24px Inter, sans-serif'; // Larger Header Font
     ctx.textAlign = 'center';
@@ -274,7 +295,6 @@ const ScheduleView = ({
         // Adjust font sizes for compact blocks
         const titleFontSize = isVeryCompact ? 18 : (isCompact ? 20 : 22);
         const infoFontSize = isVeryCompact ? 12 : (isCompact ? 14 : 16);
-        const lineHeight = isVeryCompact ? 16 : (isCompact ? 20 : 22);
         const padding = isVeryCompact ? 8 : 14;
 
         // Shadow
@@ -304,36 +324,28 @@ const ScheduleView = ({
 
         let textY = y + padding;
         const textX = x + padding;
+        const maxTextWidth = w - (padding * 2); // Maximum width for text
 
         // Course Code
-        ctx.font = `bold ${titleFontSize}px Inter, sans-serif`;
-        ctx.fillText(`${section.courseCode}-${section.sectionNum}`, textX, textY);
-        textY += titleFontSize + 4;
+        textY += drawFittedText(`${section.courseCode}-${section.sectionNum}`, textX, textY, maxTextWidth, titleFontSize, 'bold');
 
         // Course Title
         if (section.courseTitle) {
-          ctx.font = `500 ${infoFontSize}px Inter, sans-serif`;
-          ctx.fillText(section.courseTitle, textX, textY);
-          textY += lineHeight;
+          textY += drawFittedText(section.courseTitle, textX, textY, maxTextWidth, infoFontSize);
         }
 
         // Instructor
         if (section.instructor) {
-          ctx.font = `500 ${infoFontSize}px Inter, sans-serif`;
-          ctx.fillText(section.instructor, textX, textY);
-          textY += lineHeight;
+          textY += drawFittedText(section.instructor, textX, textY, maxTextWidth, infoFontSize);
         }
 
         // Time
-        ctx.font = `500 ${infoFontSize}px Inter, sans-serif`;
-        ctx.fillText(`${section.timestart} - ${section.timeend}`, textX, textY);
-        textY += lineHeight;
+        textY += drawFittedText(`${section.timestart} - ${section.timeend}`, textX, textY, maxTextWidth, infoFontSize);
 
         // Room
         const room = getRoom(section);
         if (room !== 'TBA') {
-          ctx.font = `500 ${infoFontSize}px Inter, sans-serif`;
-          ctx.fillText(`📍 ${room}`, textX, textY);
+          drawFittedText(`📍 ${room}`, textX, textY, maxTextWidth, infoFontSize);
         }
 
         ctx.restore();
@@ -355,9 +367,10 @@ const ScheduleView = ({
     // Calculate vertical center for all footer elements
     const footerCenterY = footerY + (badgeHeight / 2);
 
-    // Credits Badge
+    // Credits Badge (only for student schedules, not professor mode)
     const totalCredits = schedule.reduce((sum, section) => sum + (parseFloat(section.Crdt || section.crdt || section.credits || 0)), 0);
-    if (totalCredits > 0) {
+    const showCredits = totalCredits > 0 && !professorMode;
+    if (showCredits) {
       const badgeText = `${totalCredits} Credits`; // Note: CSS has "Credits" in normal weight, but canvas simple text is fine for now
       ctx.font = badgeFontSize;
       const textMetrics = ctx.measureText(badgeText);
@@ -381,7 +394,7 @@ const ScheduleView = ({
       const semText = semester === 'spring26' ? "Spring '26" : "Fall '25";
 
       let startX = PADDING;
-      if (totalCredits > 0) {
+      if (showCredits) {
         ctx.font = badgeFontSize;
         const credText = `${totalCredits} Credits`;
         const credMetrics = ctx.measureText(credText);
@@ -879,7 +892,7 @@ const ScheduleView = ({
         ))}
         <div className="schedule-footer">
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            {totalCredits > 0 && (
+            {totalCredits > 0 && !professorMode && (
               <div className="schedule-credits-badge">
                 <strong>{totalCredits}</strong> {totalCredits === 1 ? 'Credit' : 'Credits'}
               </div>
@@ -970,7 +983,7 @@ const ScheduleView = ({
         </div>
         <div className="schedule-footer">
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            {totalCredits > 0 && (
+            {totalCredits > 0 && !professorMode && (
               <div className="schedule-credits-badge">
                 <strong>{totalCredits}</strong> {totalCredits === 1 ? 'Credit' : 'Credits'}
               </div>
