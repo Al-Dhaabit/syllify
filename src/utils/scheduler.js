@@ -199,39 +199,87 @@ export function hasValidTimeData(row) {
     return true;
 }
 
+
+// Helper to get the Class # from a row
+function getClassNum(row) {
+    return (row.class || row.classNumber || row.classNum || row.id || '').toString().trim();
+}
+
 function createCourseBundles(sections) {
+    // PRE-PROCESSING: Group sections by Class # (if available)
+    const groupedSections = [];
+    const classNumMap = new Map();
+
+    // First pass: Group by Class #
+    sections.forEach((section, idx) => {
+        const classNum = getClassNum(section);
+
+        if (classNum) {
+            if (!classNumMap.has(classNum)) {
+                // New group
+                const group = {
+                    sections: [section],
+                    originalIndex: idx, // Use first occurrence index
+                    isLab: isLabSection(section),
+                    classNum: classNum
+                };
+                classNumMap.set(classNum, group);
+                groupedSections.push(group);
+            } else {
+                // Add to existing group
+                const group = classNumMap.get(classNum);
+                group.sections.push(section);
+                // If any part is a lab, treat the whole group as a lab (mostly relevant for hybrid cases)
+                if (isLabSection(section)) {
+                    group.isLab = true;
+                }
+            }
+        } else {
+            // No Class # - treat as individual section
+            groupedSections.push({
+                sections: [section],
+                originalIndex: idx,
+                isLab: isLabSection(section),
+                classNum: null
+            });
+        }
+    });
+
     const lectures = [];
     const labs = [];
     const usedLabIndices = new Set(); // Track which labs have been matched
 
-    // First pass: categorize sections while preserving original index
-    sections.forEach((section, idx) => {
-        if (isLabSection(section)) {
-            labs.push({ section, originalIndex: idx });
+    // Second pass: Categorize groups into lectures and labs
+    groupedSections.forEach((group, idx) => {
+        if (group.isLab) {
+            labs.push({ ...group, groupIndex: idx });
         } else {
-            lectures.push({ section, originalIndex: idx });
+            lectures.push({ ...group, groupIndex: idx });
         }
     });
 
-    // No labs - each lecture is its own bundle
+    // Case: No labs found - each lecture group is a valid option
+    // Note: A "lecture group" might contain multiple rows (e.g., MW and F)
     if (labs.length === 0) {
-        return lectures.map((lec) => [lec.section]);
+        return lectures.map((lec) => lec.sections);
     }
 
-    // No lectures - each lab is its own bundle
+    // Case: No lectures found - each lab group is a valid option
     if (lectures.length === 0) {
-        return labs.map((lab) => [lab.section]);
+        return labs.map((lab) => lab.sections);
     }
 
     const bundles = [];
 
     for (const lectureObj of lectures) {
-        const lecture = lectureObj.section;
-        const lecSection = getSectionNum(lecture);
+        // We use the first section in the group for matching logic
+        const lectureMain = lectureObj.sections[0];
+        const lecSection = getSectionNum(lectureMain);
         const lecDigits = lecSection.replace(/[^0-9]/g, '');
 
+        // If no digits in section number, just output the lecture group as is
         if (lecDigits.length === 0) {
-            bundles.push([lecture]);
+            bundles.push(lectureObj.sections);
             continue;
         }
 
@@ -242,15 +290,18 @@ function createCourseBundles(sections) {
         const lecLastDigit = parseInt(lecDigits.slice(-1), 10); // 0 from "600"
         const expectedLabNum = lecLastDigit + 1; // 1
 
-        let matchingLab = null;
+        let matchingLabGroup = null;
         let matchingLabIdx = -1;
 
         // Try pattern match first (60L1 for 600)
         for (let i = 0; i < labs.length; i++) {
             if (usedLabIndices.has(i)) continue;
 
-            const lab = labs[i].section;
-            const labSection = getSectionNum(lab);
+            const labGroup = labs[i];
+            // Use first section of lab group for matching
+            const labMain = labGroup.sections[0];
+            const labSection = getSectionNum(labMain);
+
             // Match format: digits + L + digits (e.g., "60L1")
             const labMatch = labSection.match(/^(\d*)L(\d+)$/i);
             if (!labMatch) continue;
@@ -259,7 +310,7 @@ function createCourseBundles(sections) {
             const labNum = parseInt(labMatch[2], 10); // 1 from "60L1"
 
             if (labPrefix === lecPrefix && labNum === expectedLabNum) {
-                matchingLab = lab;
+                matchingLabGroup = labGroup;
                 matchingLabIdx = i;
                 break;
             }
@@ -267,63 +318,54 @@ function createCourseBundles(sections) {
 
         // Strategy 2: If no pattern match, check for same-section-number lab
         // that appears immediately after this lecture in the original spreadsheet order
-        if (!matchingLab) {
+        // Note: We check the original index of the *groups*
+        if (!matchingLabGroup) {
             for (let i = 0; i < labs.length; i++) {
                 if (usedLabIndices.has(i)) continue;
 
-                const labObj = labs[i];
-                const lab = labObj.section;
-                const labSection = getSectionNum(lab);
+                const labGroup = labs[i];
+                const labMain = labGroup.sections[0];
+                const labSection = getSectionNum(labMain);
 
                 // Check if lab has same section number AND is the row right after lecture
-                if (labSection === lecSection && labObj.originalIndex === lectureObj.originalIndex + 1) {
-                    // Already confirmed it's a lab via isLabSection, no need to double-check
-                    matchingLab = lab;
-                    matchingLabIdx = i;
-                    break;
-                }
-            }
-        }
+                // We compare original indices from the pre-processing step
+                // Ideally, the lab group's original index should be > lecture group's original index
+                // but reasonably close. For simplicity, we stick to the sequential assumption or same section assumption.
 
-        // Strategy 3: If still no match, check for any lab with same section number
-        // (for cases where row order isn't strictly consecutive)
-        if (!matchingLab) {
-            for (let i = 0; i < labs.length; i++) {
-                if (usedLabIndices.has(i)) continue;
-
-                const lab = labs[i].section;
-                const labSection = getSectionNum(lab);
-
+                // Relaxed sequential check: just check same section number for now as primary fallback
                 if (labSection === lecSection) {
-                    matchingLab = lab;
+                    matchingLabGroup = labGroup;
                     matchingLabIdx = i;
                     break;
                 }
             }
         }
 
-        if (matchingLab) {
-            bundles.push([lecture, matchingLab]);
+        if (matchingLabGroup) {
+            // Bundle = All lecture rows + All lab rows
+            bundles.push([...lectureObj.sections, ...matchingLabGroup.sections]);
             usedLabIndices.add(matchingLabIdx);
         } else {
-            // No matching lab found - include lecture alone
-            bundles.push([lecture]);
+            // No matching lab found - include lecture group alone
+            bundles.push(lectureObj.sections);
         }
     }
 
     // Add any unmatched labs as standalone bundles
-    labs.forEach((labObj, i) => {
+    labs.forEach((labGroup, i) => {
         if (!usedLabIndices.has(i)) {
-            bundles.push([labObj.section]);
+            bundles.push(labGroup.sections);
         }
     });
 
     if (bundles.length === 0) {
+        // Fallback: return original sections as individual bundles if all else fails
         return sections.map((s) => [s]);
     }
 
     return bundles;
 }
+
 
 function getLatestClassTime(schedule) {
     let maxTime = 0;

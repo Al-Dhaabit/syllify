@@ -787,14 +787,11 @@ function App() {
       showDisclaimer || showTips || showTipPopup || selectedCourse;
     if (modalOpen) {
       document.body.style.overflow = "hidden";
-      document.documentElement.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
     }
     return () => {
       document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
     };
   }, [showDisclaimer, showTips, showTipPopup, selectedCourse]);
 
@@ -1530,7 +1527,7 @@ function App() {
         </div>
       )}
 
-      {/* <div className="starfield"></div> */}
+      <div className="starfield"></div>
       <main>
         <div className="center-vertical">
           <h1
