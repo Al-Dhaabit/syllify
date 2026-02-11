@@ -812,17 +812,49 @@ export function refreshSchedule(schedule, sheetData) {
     const changedIndices = [];
     const changeDetails = []; // Detailed change information
 
+    // Track which sheetData rows have been matched to avoid double-matching
+    // split-timing courses (multiple rows with same course code + section number)
+    const usedSheetIndices = new Set();
+
     const updatedSchedule = schedule.map((oldSection, index) => {
         const oldCode = getCourseCode(oldSection);
         const oldSecNum = getSectionNum(oldSection);
+        const oldDays = (oldSection.days || '').toString().trim().toUpperCase();
+        const oldClassNum = getClassNum(oldSection);
 
-        // Find matching row in new sheetData
-        const newSection = sheetData.find(row =>
-            getCourseCode(row) === oldCode &&
-            getSectionNum(row) === oldSecNum
-        );
+        // Find matching row in new sheetData, handling split-timing courses
+        // by preferring a row with matching days/Class # and not already used
+        let bestMatchIdx = -1;
+        let fallbackIdx = -1;
+
+        for (let i = 0; i < sheetData.length; i++) {
+            if (usedSheetIndices.has(i)) continue;
+
+            const row = sheetData[i];
+            if (getCourseCode(row) !== oldCode || getSectionNum(row) !== oldSecNum) continue;
+
+            const rowDays = (row.days || '').toString().trim().toUpperCase();
+            const rowClassNum = getClassNum(row);
+
+            // Exact match on days or Class # — this is the right split-timing row
+            if (oldDays && rowDays && oldDays === rowDays) {
+                bestMatchIdx = i;
+                break;
+            }
+            if (oldClassNum && rowClassNum && oldClassNum === rowClassNum) {
+                // Class # match but days differ — still a candidate (days might have changed)
+                if (bestMatchIdx === -1) bestMatchIdx = i;
+            }
+            // Keep track of the first code+section match as a fallback
+            if (fallbackIdx === -1) fallbackIdx = i;
+        }
+
+        const matchIdx = bestMatchIdx !== -1 ? bestMatchIdx : fallbackIdx;
+        const newSection = matchIdx !== -1 ? sheetData[matchIdx] : null;
 
         if (newSection) {
+            usedSheetIndices.add(matchIdx);
+
             // Check for changes in critical fields
             const criticalFields = ['days', 'timestart', 'timeend', 'instructor', 'room', 'Room #', 'title'];
             const fieldChanges = {};
@@ -863,9 +895,18 @@ export function refreshSchedule(schedule, sheetData) {
     }).filter(Boolean);
 
     // Check for conflicts in the updated schedule
+    // Skip conflict check between sections that belong to the same bundle
+    // (same course code + section number = split-timing rows of the same class)
     let hasConflicts = false;
     for (let i = 0; i < updatedSchedule.length; i++) {
         for (let j = i + 1; j < updatedSchedule.length; j++) {
+            // Skip pairs from the same split-timing course
+            const codeI = getCourseCode(updatedSchedule[i]);
+            const secI = getSectionNum(updatedSchedule[i]);
+            const codeJ = getCourseCode(updatedSchedule[j]);
+            const secJ = getSectionNum(updatedSchedule[j]);
+            if (codeI === codeJ && secI === secJ) continue;
+
             if (checkConflict(updatedSchedule[i], updatedSchedule[j])) {
                 hasConflicts = true;
                 break;

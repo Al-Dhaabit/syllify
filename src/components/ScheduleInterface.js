@@ -1268,11 +1268,11 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
                     >
                       <FaExclamationTriangle />
                       <span>
-                        ⚠️ Time conflict detected! This schedule has overlapping courses.
+                        Time conflict detected! This schedule has overlapping courses.
                       </span>
                     </div>
                   )}
-                  {fav.modified && (
+                  {fav.modified && fav.lastUpdated && (Date.now() - new Date(fav.lastUpdated).getTime() < 7 * 24 * 60 * 60 * 1000) && (
                     <div
                       className="modified-warning"
                       style={{
@@ -1535,7 +1535,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
                   <div className="conflict-warning-box">
                     <FaExclamationTriangle />
                     <span>
-                      ⚠️ Time conflict detected! This updated schedule has overlapping courses.
+                      Time conflict detected! This updated schedule has overlapping courses.
                     </span>
                   </div>
                 )}
@@ -1562,36 +1562,66 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
                 </div>
 
                 {/* Change Summary - Now at the bottom */}
-                {fav.changeDetails && fav.changeDetails.length > 0 && (
-                  <div className="change-summary-section">
-                    <h3>Changes Summary</h3>
-                    {fav.changeDetails.map((change, idx) => (
-                      <div key={idx} className="change-item" style={{
-                        borderBottom: idx < fav.changeDetails.length - 1 ? '1px solid rgba(255, 171, 0, 0.2)' : 'none'
-                      }}>
-                        <div className="change-course-code">
-                          {change.courseCode} {change.section && `- Section ${change.section}`}
+                {fav.changeDetails && fav.changeDetails.length > 0 && (() => {
+                  // Group changes by courseCode + section to merge split-timing entries
+                  const groupedChanges = [];
+                  const groupMap = new Map();
+
+                  fav.changeDetails.forEach((change) => {
+                    const key = `${change.courseCode}-${change.section}`;
+                    if (groupMap.has(key)) {
+                      groupMap.get(key).entries.push(change);
+                    } else {
+                      const group = {
+                        courseCode: change.courseCode,
+                        section: change.section,
+                        entries: [change],
+                      };
+                      groupMap.set(key, group);
+                      groupedChanges.push(group);
+                    }
+                  });
+
+                  return (
+                    <div className="change-summary-section">
+                      <h3>Changes Summary</h3>
+                      {groupedChanges.map((group, gIdx) => (
+                        <div key={gIdx} className="change-item" style={{
+                          borderBottom: gIdx < groupedChanges.length - 1 ? '1px solid rgba(255, 171, 0, 0.2)' : 'none'
+                        }}>
+                          <div className="change-course-code">
+                            {group.courseCode} {group.section && `- Section ${group.section}`}
+                          </div>
+                          {group.entries.map((change, eIdx) => (
+                            <div key={eIdx}>
+                              {group.entries.length > 1 && (
+                                <div style={{ fontSize: '0.8rem', color: '#8b9bb4', marginTop: eIdx > 0 ? '8px' : '2px', marginBottom: '2px' }}>
+                                  Timing {eIdx + 1}
+                                </div>
+                              )}
+                              {change.type === 'removed' ? (
+                                <div className="change-removed">
+                                  ⚠️ This section has been removed from the course catalog
+                                </div>
+                              ) : (
+                                <div className="change-details">
+                                  {Object.entries(change.changes).map(([field, values]) => (
+                                    <div key={field} className="change-field">
+                                      <span className="change-field-name">{field}:</span>{' '}
+                                      <span className="change-old-value">{values.old || '(empty)'}</span>
+                                      {' → '}
+                                      <span className="change-new-value">{values.new || '(empty)'}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
                         </div>
-                        {change.type === 'removed' ? (
-                          <div className="change-removed">
-                            ⚠️ This section has been removed from the course catalog
-                          </div>
-                        ) : (
-                          <div className="change-details">
-                            {Object.entries(change.changes).map(([field, values]) => (
-                              <div key={field} className="change-field">
-                                <span className="change-field-name">{field}:</span>{' '}
-                                <span className="change-old-value">{values.old || '(empty)'}</span>
-                                {' → '}
-                                <span className="change-new-value">{values.new || '(empty)'}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Close Button at Bottom */}
