@@ -368,10 +368,27 @@ const ScheduleView = ({
     const footerCenterY = footerY + (badgeHeight / 2);
 
     // Credits Badge (only for student schedules, not professor mode)
-    const totalCredits = schedule.reduce((sum, section) => sum + (parseFloat(section.Crdt || section.crdt || section.credits || 0)), 0);
-    const showCredits = totalCredits > 0 && !professorMode;
+    // Use proper deduplication logic for split-timing courses
+    const uniqueSectionsForCredits = new Set();
+    let calculatedCredits = 0;
+
+    schedule.forEach(section => {
+      const classNum = (section.class || section.classNumber || section.classNum || section.id || '').toString().trim();
+      const courseCode = (section.subject || section.subj || '') + (section.cat || section.number || '');
+      const sectionNum = section.section || section.sec || section.sect || '';
+
+      // Key is Class # if available, otherwise CourseCode-Section
+      const key = classNum || `${courseCode}-${sectionNum}`;
+
+      if (!uniqueSectionsForCredits.has(key)) {
+        uniqueSectionsForCredits.add(key);
+        calculatedCredits += parseFloat(section.Crdt || section.crdt || section.credits || 0);
+      }
+    });
+
+    const showCredits = calculatedCredits > 0 && !professorMode;
     if (showCredits) {
-      const badgeText = `${totalCredits} Credits`; // Note: CSS has "Credits" in normal weight, but canvas simple text is fine for now
+      const badgeText = `${calculatedCredits} Credits`; // Note: CSS has "Credits" in normal weight, but canvas simple text is fine for now
       ctx.font = badgeFontSize;
       const textMetrics = ctx.measureText(badgeText);
       const badgeW = textMetrics.width + (badgePaddingX * 2);
@@ -396,7 +413,7 @@ const ScheduleView = ({
       let startX = PADDING;
       if (showCredits) {
         ctx.font = badgeFontSize;
-        const credText = `${totalCredits} Credits`;
+        const credText = `${calculatedCredits} Credits`;
         const credMetrics = ctx.measureText(credText);
         const credBadgeW = credMetrics.width + (badgePaddingX * 2);
         startX += credBadgeW + badgeGap;
@@ -728,15 +745,22 @@ const ScheduleView = ({
 
   // Calculate total credits for this schedule
   const totalCredits = useMemo(() => {
-    const uniqueCourses = {};
+    const uniqueSections = new Set();
+    let total = 0;
+
     schedule.forEach((section) => {
+      const classNum = (section.class || section.classNumber || section.classNum || section.id || '').toString().trim();
       const courseCode = (section.subject || section.subj || '') + (section.cat || section.number || '');
-      if (!uniqueCourses[courseCode]) {
+      const sectionNum = section.section || section.sec || section.sect || '';
+      const key = classNum || `${courseCode}-${sectionNum}`;
+
+      if (!uniqueSections.has(key)) {
+        uniqueSections.add(key);
         const credits = parseFloat(section.Crdt || section.crdt || section.credits || 0);
-        uniqueCourses[courseCode] = credits;
+        total += credits;
       }
     });
-    return Object.values(uniqueCourses).reduce((sum, credits) => sum + credits, 0);
+    return total;
   }, [schedule]);
 
   const Watermark = () => (
