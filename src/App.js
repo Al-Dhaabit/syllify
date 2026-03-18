@@ -1735,12 +1735,12 @@ function App() {
 
                 {hasSearched &&
                   (results.length > 0 ? paginatedResults : paginatedClosest).map((course) => (
-                    <div className="course-card" key={course.id}>
-                      <div
-                        className="course-header"
-                        onClick={() => setSelectedCourse(course)}
-                        style={{ cursor: "pointer" }}
-                      >
+                    <div 
+                      className="course-card" 
+                      key={course.id}
+                      onClick={() => setSelectedCourse(course)}
+                    >
+                      <div className="course-header">
                         <span className="course-title">
                           {highlightText(course.title, query.split(/\s+/))}
                         </span>

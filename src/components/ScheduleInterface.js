@@ -1018,7 +1018,7 @@ const ScheduleInterface = ({ sheetDataFall25, sheetDataSpring26, sheetDataFall26
                 type="text"
                 value={courseInput}
                 onChange={(e) => setCourseInput(e.target.value)}
-                placeholder={isMobile ? "Course codes or Professor names" : "Courses (e.g. MATH181 ENGL211) or Professor names (e.g. Rik Rolster)"}
+                placeholder={isMobile ? "Course codes or Professor names" : "Courses (e.g. ENGL211 ENGL211.600) or Professor names (e.g. Rik Rolster)"}
                 className="search-input"
               />
               <button
