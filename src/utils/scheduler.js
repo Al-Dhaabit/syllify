@@ -557,14 +557,32 @@ export function generateSchedules(
     const courseSections = {};
     const tbdSections = {}; // Track sections with TBD times per course
 
-    const targets = selectedCourseCodes.map((c) =>
-        c.toUpperCase().replace(/[^A-Z0-9]/g, '')
-    );
+    // Separate course codes into base codes and target sections
+    const parsedTargets = selectedCourseCodes.map((c) => {
+        const parts = c.split('.');
+        const baseCode = parts[0].toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const targetSection = parts[1] ? parts[1].toUpperCase().trim() : null;
+        return { original: c, baseCode, targetSection };
+    });
+
+    const targetBaseCodes = parsedTargets.map(t => t.baseCode);
 
     sheetData.forEach((row) => {
         const fullCode = getCourseCode(row);
 
-        if (targets.includes(fullCode)) {
+        if (targetBaseCodes.includes(fullCode)) {
+            // Check if this section matches a specific target section for this course
+            const target = parsedTargets.find(t => t.baseCode === fullCode);
+            const sectionNum = getSectionNum(row);
+
+            // If a specific section was requested and this isn't it, skip it
+            if (target.targetSection && sectionNum !== target.targetSection) {
+                // However, we MUST NOT skip it if it's the matching lab for a specific lecture!
+                // But wait, it's simpler to filter the final bundles instead.
+                // If I keep ALL sections here, createCourseBundles will make all possible combinations.
+                // Then I just filter out bundles that don't contain the specific section requested.
+            }
+
             // Check if this section has valid time data
             if (hasValidTimeData(row)) {
                 if (!courseSections[fullCode]) {
@@ -582,8 +600,8 @@ export function generateSchedules(
     });
 
     const foundCodes = Object.keys(courseSections);
-    const tbdOnlyCodes = targets.filter((t) => !foundCodes.includes(t) && tbdSections[t]);
-    const missingCodes = targets.filter((t) => !foundCodes.includes(t) && !tbdSections[t]);
+    const tbdOnlyCodes = targetBaseCodes.filter((t) => !foundCodes.includes(t) && tbdSections[t]);
+    const missingCodes = targetBaseCodes.filter((t) => !foundCodes.includes(t) && !tbdSections[t]);
 
     // If a course ONLY has TBD sections, report it specially
     if (tbdOnlyCodes.length > 0) {
@@ -604,6 +622,14 @@ export function generateSchedules(
     const courseBundles = {};
     for (const courseCode of Object.keys(courseSections)) {
         let bundles = createCourseBundles(courseSections[courseCode]);
+
+        // Filter bundles if a target section was specified for this course
+        const target = parsedTargets.find(t => t.baseCode === courseCode);
+        if (target && target.targetSection) {
+            bundles = bundles.filter(bundle => 
+                bundle.some(section => getSectionNum(section) === target.targetSection)
+            );
+        }
 
         bundles.sort((a, b) => {
             const endA = getBundleLatestTime(a);

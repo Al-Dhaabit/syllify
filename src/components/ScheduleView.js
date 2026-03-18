@@ -408,7 +408,16 @@ const ScheduleView = ({
 
     // Semester Badge
     if (semester) {
-      const semText = semester === 'spring26' ? "Spring '26" : "Fall '25";
+      const formatSem = (sem) => {
+        switch(sem) {
+          case 'fall25': return "Fall '25";
+          case 'spring26': return "Spring '26";
+          case 'fall26': return "Fall '26";
+          case 'spring27': return "Spring '27";
+          default: return sem;
+        }
+      };
+      const semText = formatSem(semester);
 
       let startX = PADDING;
       if (showCredits) {
@@ -648,22 +657,15 @@ const ScheduleView = ({
         endDate.setMinutes(endDate.getMinutes() + duration);
 
         // Semester-based end date for recurrence
-        const currentDate = new Date();
         let untilDate;
-        if (semester === 'spring26') {
+        if (semester === 'spring26' || semester === 'spring27') {
           // Spring ends May 31st
-          untilDate = new Date(currentDate.getFullYear(), 4, 31, 23, 59, 59); // Month is 0-indexed, so 4 = May
-          // If we're past May, it's next year's spring
-          if (currentDate > untilDate) {
-            untilDate.setFullYear(untilDate.getFullYear() + 1);
-          }
+          const year = semester === 'spring26' ? 2026 : 2027;
+          untilDate = new Date(year, 4, 31, 23, 59, 59); // 4 = May
         } else {
           // Fall ends December 31st
-          untilDate = new Date(currentDate.getFullYear(), 11, 31, 23, 59, 59); // 11 = December
-          // If we're past December 31st, something is off, but handle it
-          if (currentDate > untilDate) {
-            untilDate.setFullYear(untilDate.getFullYear() + 1);
-          }
+          const year = semester === 'fall25' ? 2025 : 2026;
+          untilDate = new Date(year, 11, 31, 23, 59, 59); // 11 = December
         }
         const untilStr = untilDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 

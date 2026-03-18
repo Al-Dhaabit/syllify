@@ -559,9 +559,10 @@ function isCourseCodeQuery(query) {
   return codePattern.test(query.trim());
 }
 
-const SHEET_ID = "1UUjSCTgCK7yZLvlrwwoZ2341K9aCwiYMiR7Qs8fegRA";
-const SHEET_GID_FALL2025 = "672481223";
-const SHEET_GID_SPRING2026 = "1605186669";
+const SHEET_ID_25_26 = "1UUjSCTgCK7yZLvlrwwoZ2341K9aCwiYMiR7Qs8fegRA";
+const SHEET_ID_26_27 = "1bI-jXiF48S7j6YuvvNYRcpzh9e2MlZE-cICxu3ONZGg";
+const SHEET_GID_FALL = "672481223";
+const SHEET_GID_SPRING = "1605186669";
 
 // NEW: origins to preconnect/dns-prefetch (keep ≤ 4)
 const PRECONNECT_ORIGINS = [
@@ -570,9 +571,9 @@ const PRECONNECT_ORIGINS = [
   "https://www.gstatic.com",
 ];
 
-// Accept gid as argument
-async function fetchGoogleSheet(gid) {
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
+// Accept docId and gid as argument
+async function fetchGoogleSheet(docId, gid) {
+  const url = `https://docs.google.com/spreadsheets/d/${docId}/export?format=csv&gid=${gid}`;
   // console.log("🔗 Fetching URL:", url);
 
   try {
@@ -796,12 +797,14 @@ function App() {
   }, [showDisclaimer, showTips, showTipPopup, selectedCourse]);
 
   // NEW: track lazy sheet loading + errors
-  const [sheetDataFall, setSheetDataFall] = useState([]);
-  const [sheetDataSpring, setSheetDataSpring] = useState([]);
-  const [selectedSemester, setSelectedSemester] = useState("fall");
+  const [sheetDataFall25, setSheetDataFall25] = useState([]);
+  const [sheetDataSpring26, setSheetDataSpring26] = useState([]);
+  const [sheetDataFall26, setSheetDataFall26] = useState([]);
+  const [sheetDataSpring27, setSheetDataSpring27] = useState([]);
+  const [selectedSemester, setSelectedSemester] = useState("fall25");
   const [isLoadingSheet, setIsLoadingSheet] = useState(false);
   const [sheetError, setSheetError] = useState(null);
-  const loadingRef = useRef({ fall: false, spring: false });
+  const loadingRef = useRef({ fall25: false, spring26: false, fall26: false, spring27: false });
 
   // NEW: Add resource hints + preload early
   useEffect(() => {
@@ -846,42 +849,53 @@ function App() {
   // NEW: Lazy loader for a semester's sheet (memoized)
   const loadSheet = useCallback(async (semester) => {
     if (loadingRef.current[semester]) return;
-    if (semester === "fall" && sheetDataFall.length > 0) return;
-    if (semester === "spring" && sheetDataSpring.length > 0) return;
+    if (semester === "fall25" && sheetDataFall25.length > 0) return;
+    if (semester === "spring26" && sheetDataSpring26.length > 0) return;
+    if (semester === "fall26" && sheetDataFall26.length > 0) return;
+    if (semester === "spring27" && sheetDataSpring27.length > 0) return;
 
     loadingRef.current[semester] = true;
     setIsLoadingSheet(true);
     setSheetError(null);
     try {
-      const gid = semester === "fall" ? SHEET_GID_FALL2025 : SHEET_GID_SPRING2026;
-      const data = await fetchGoogleSheet(gid);
-      if (semester === "fall") setSheetDataFall(data || []);
-      else setSheetDataSpring(data || []);
+      let docId, gid;
+      if (semester === "fall25") { docId = SHEET_ID_25_26; gid = SHEET_GID_FALL; }
+      else if (semester === "spring26") { docId = SHEET_ID_25_26; gid = SHEET_GID_SPRING; }
+      else if (semester === "fall26") { docId = SHEET_ID_26_27; gid = SHEET_GID_FALL; }
+      else if (semester === "spring27") { docId = SHEET_ID_26_27; gid = SHEET_GID_SPRING; }
+
+      const data = await fetchGoogleSheet(docId, gid);
+      if (semester === "fall25") setSheetDataFall25(data || []);
+      else if (semester === "spring26") setSheetDataSpring26(data || []);
+      else if (semester === "fall26") setSheetDataFall26(data || []);
+      else if (semester === "spring27") setSheetDataSpring27(data || []);
     } catch (e) {
       setSheetError("Failed to load sections.");
     } finally {
       setIsLoadingSheet(false);
       loadingRef.current[semester] = false;
     }
-  }, [sheetDataFall.length, sheetDataSpring.length]);
+  }, [sheetDataFall25.length, sheetDataSpring26.length, sheetDataFall26.length, sheetDataSpring27.length]);
 
   // NEW: On modal open or tab switch, ensure the needed semester is loaded
   // Load both semesters when in schedule mode, or selected semester for course popup
   useEffect(() => {
     if (mode === "schedule") {
-      loadSheet("fall");
-      loadSheet("spring");
+      loadSheet("fall25");
+      loadSheet("spring26");
+      loadSheet("fall26");
+      loadSheet("spring27");
     } else if (selectedCourse) {
       loadSheet(selectedSemester);
     }
   }, [selectedCourse, selectedSemester, loadSheet, mode]);
 
-  // NEW: Opportunistically prefetch Fall sheet when the browser is idle
+  // NEW: Opportunistically prefetch Fall 25 sheet when the browser is idle
   useEffect(() => {
     const idleId =
       "requestIdleCallback" in window
-        ? window.requestIdleCallback(() => loadSheet("fall"))
-        : setTimeout(() => loadSheet("fall"), 1500);
+        ? window.requestIdleCallback(() => loadSheet("fall25"))
+        : setTimeout(() => loadSheet("fall25"), 1500);
     return () => {
       if ("cancelIdleCallback" in window) {
         window.cancelIdleCallback(idleId);
@@ -1818,15 +1832,18 @@ function App() {
             </>
           ) : (
             <ScheduleInterface
-              sheetData={sheetDataFall}
-              sheetDataSpring={sheetDataSpring}
+              sheetDataFall25={sheetDataFall25}
+              sheetDataSpring26={sheetDataSpring26}
+              sheetDataFall26={sheetDataFall26}
+              sheetDataSpring27={sheetDataSpring27}
             />
           )}
 
-          {/* --- NEW: Course Sections Popup Modal --- */}
           {selectedCourse && (() => {
             const activeSheetData =
-              selectedSemester === "fall" ? sheetDataFall : sheetDataSpring;
+              selectedSemester === "fall25" ? sheetDataFall25 :
+              selectedSemester === "spring26" ? sheetDataSpring26 :
+              selectedSemester === "fall26" ? sheetDataFall26 : sheetDataSpring27;
             const sections =
               activeSheetData && activeSheetData.length > 0
                 ? getSectionsForCourse(selectedCourse, activeSheetData)
@@ -1849,16 +1866,28 @@ function App() {
                     {/* Semester Toggle */}
                     <div className="semester-toggle">
                       <button
-                        className={selectedSemester === "fall" ? "active" : ""}
-                        onClick={() => setSelectedSemester("fall")}
+                        className={selectedSemester === "fall25" ? "active" : ""}
+                        onClick={() => setSelectedSemester("fall25")}
                       >
                         Fall 2025
                       </button>
                       <button
-                        className={selectedSemester === "spring" ? "active" : ""}
-                        onClick={() => setSelectedSemester("spring")}
+                        className={selectedSemester === "spring26" ? "active" : ""}
+                        onClick={() => setSelectedSemester("spring26")}
                       >
                         Spring 2026
+                      </button>
+                      <button
+                        className={selectedSemester === "fall26" ? "active" : ""}
+                        onClick={() => setSelectedSemester("fall26")}
+                      >
+                        Fall 2026
+                      </button>
+                      <button
+                        className={selectedSemester === "spring27" ? "active" : ""}
+                        onClick={() => setSelectedSemester("spring27")}
+                      >
+                        Spring 2027
                       </button>
                     </div>
 

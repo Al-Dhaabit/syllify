@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { generateSchedules, refreshSchedule, getScheduleHash, checkPreferences, getInstructor, scoreSchedule, hasValidTimeData } from '../utils/scheduler';
 import { levenshtein } from '../utils/stringUtils';
 import ScheduleView from './ScheduleView';
@@ -14,6 +14,11 @@ import {
   FaArrowLeft,
   FaArrowRight,
   FaChalkboardTeacher,
+  FaChevronDown,
+  FaChevronUp,
+  FaCalendarAlt,
+  FaLeaf,
+  FaSeedling,
 } from 'react-icons/fa';
 
 // Returns array of all matching professors
@@ -62,7 +67,17 @@ const findProfessors = (query, data) => {
   return matches.map(m => m.name);
 };
 
-const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
+const formatSemesterName = (sem) => {
+  switch(sem) {
+    case 'fall25': return "Fall '25";
+    case 'spring26': return "Spring '26";
+    case 'fall26': return "Fall '26";
+    case 'spring27': return "Spring '27";
+    default: return sem;
+  }
+};
+
+const ScheduleInterface = ({ sheetDataFall25, sheetDataSpring26, sheetDataFall26, sheetDataSpring27 }) => {
   // Lazy initialize state from localStorage
   const [semester, setSemester] = useState(() => {
     try {
@@ -94,6 +109,9 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
 
   const [showPreferences, setShowPreferences] = useState(false);
   const preferencesRef = useRef(null);
+  const [showSemesterDropdown, setShowSemesterDropdown] = useState(false);
+  const semesterDropdownRef = useRef(null);
+
   const [professorMode, setProfessorMode] = useState(() => {
     try {
       const saved = localStorage.getItem('coursalog_state');
@@ -222,7 +240,17 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
 
   const schedulesPerPage = 5;
 
-  const activeSheetData = semester === 'fall25' ? sheetData : sheetDataSpring;
+  const getSheetData = useCallback((sem) => {
+    switch (sem) {
+      case 'fall25': return sheetDataFall25;
+      case 'spring26': return sheetDataSpring26;
+      case 'fall26': return sheetDataFall26;
+      case 'spring27': return sheetDataSpring27;
+      default: return sheetDataFall25;
+    }
+  }, [sheetDataFall25, sheetDataSpring26, sheetDataFall26, sheetDataSpring27]);
+
+  const activeSheetData = getSheetData(semester);
 
   // Calculate pagination values
   const totalPages = Math.ceil(schedules.length / schedulesPerPage);
@@ -313,7 +341,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
     }
 
     if (professorMode) {
-      const newData = semester === 'fall25' ? sheetData : sheetDataSpring;
+      const newData = getSheetData(semester);
 
       // If data isn't loaded yet, don't do anything (keep current state)
       if (!newData || newData.length === 0) return;
@@ -363,13 +391,26 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
         }
         // No matches in new semester
         setSchedules([]);
-        setError(`No matching professors found in ${semester === 'fall25' ? "Fall '25" : "Spring '26"}`);
+        setError(`No matching professors found in ${formatSemesterName(semester)}`);
         setTbdSections(null);
         return;
       }
 
       // Single professor mode - try to find by exact name
-      const allProfSections = newData.filter(row => getInstructor(row) === professorMode);
+      let allProfSections = newData.filter(row => getInstructor(row) === professorMode);
+      
+      // Fallback: If exact match fails, try fuzzy search with the name we already have
+      if (allProfSections.length === 0) {
+        const matches = findProfessors(professorMode, newData);
+        if (matches.length > 0) {
+          const matchedName = matches[0];
+          allProfSections = newData.filter(row => getInstructor(row) === matchedName);
+          // Set professor mode to the new name format found in this semester
+          setProfessorMode(matchedName);
+          return; // The effect will re-run with the updated name
+        }
+      }
+
       let excludedSections = [];
       const profSchedule = allProfSections.filter(row => {
         if (hasValidTimeData(row)) {
@@ -404,11 +445,11 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
         setTbdSections(null);
         return;
       } else {
-        // Professor not found in new semester
+        // Professor not found in new semester even after fuzzy search
         setSchedules([]);
         setCoursesFound(0);
         setTotalCourses(0);
-        setError(`No schedule found for ${professorMode} in ${semester === 'fall25' ? "Fall '25" : "Spring '26"}`);
+        setError(`No schedule found for ${professorMode} in ${formatSemesterName(semester)}`);
         setTbdSections(null);
         return;
       }
@@ -416,10 +457,20 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
 
     // Check if there's a pending professor search from wrong semester
     if (pendingProfessor) {
-      const newData = semester === 'fall25' ? sheetData : sheetDataSpring;
+      const newData = getSheetData(semester);
       if (!newData || newData.length === 0) return;
 
-      const allProfSections = newData.filter(row => getInstructor(row) === pendingProfessor);
+      let allProfSections = newData.filter(row => getInstructor(row) === pendingProfessor);
+      
+      // Fallback for pending professor
+      if (allProfSections.length === 0) {
+        const matches = findProfessors(pendingProfessor, newData);
+        if (matches.length > 0) {
+          const matchedName = matches[0];
+          allProfSections = newData.filter(row => getInstructor(row) === matchedName);
+          setPendingProfessor(matchedName); // This might cause double update, but it's okay
+        }
+      }
       let excludedSections = [];
       const profSchedule = allProfSections.filter(row => {
         if (hasValidTimeData(row)) {
@@ -463,24 +514,24 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
 
     // Auto-regenerate schedules when switching semesters if user has generated before
     if (selectedCourses.length > 0 && hasGenerated) {
-      const newData = semester === 'fall25' ? sheetData : sheetDataSpring;
+      const newData = getSheetData(semester);
       if (!newData || newData.length === 0) return;
 
       // Check which courses exist in the new semester
       const coursesNotInNewSemester = [];
 
       selectedCourses.forEach(code => {
-        const normalizedCode = code.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const baseCode = code.split('.')[0].toUpperCase().replace(/[^A-Z0-9]/g, '');
         const existsInNew = newData.some(row => {
           const rowCode = ((row.subject || row.subj || '') + (row.cat || row.number || '')).toUpperCase().replace(/[^A-Z0-9]/g, '');
-          return rowCode === normalizedCode;
+          return rowCode === baseCode;
         });
         if (!existsInNew) {
           coursesNotInNewSemester.push(code);
         }
       });
 
-      const semesterName = semester === 'fall25' ? "Fall '25" : "Spring '26";
+      const semesterName = formatSemesterName(semester);
 
       // If ANY courses don't exist in this semester, show error and don't generate
       if (coursesNotInNewSemester.length > 0) {
@@ -524,13 +575,15 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
     // Note: We don't need to manually save to localStorage here because
     // updating the state variables (setSchedules, etc.) will trigger
     // the useEffect above which handles the saving.
-  }, [semester, professorMode, pendingProfessor, sheetData, sheetDataSpring, selectedCourses, preferences, hasGenerated]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [semester, professorMode, pendingProfessor, sheetDataFall25, sheetDataSpring26, sheetDataFall26, sheetDataSpring27, selectedCourses, preferences, hasGenerated, getSheetData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Initial conflict check for existing favorites when data loads
   useEffect(() => {
     if (!favoritesLoaded || favorites.length === 0) return;
-    if (!sheetData || sheetData.length === 0) return;
-    if (!sheetDataSpring || sheetDataSpring.length === 0) return;
+    if (!sheetDataFall25 || sheetDataFall25.length === 0) return;
+    if (!sheetDataSpring26 || sheetDataSpring26.length === 0) return;
+    if (!sheetDataFall26 || sheetDataFall26.length === 0) return;
+    if (!sheetDataSpring27 || sheetDataSpring27.length === 0) return;
 
     // Check if any favorite needs conflict detection
     const needsCheck = favorites.some(fav => fav.hasConflicts === undefined);
@@ -542,7 +595,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
         // Skip if already has conflict status
         if (fav.hasConflicts !== undefined) return fav;
 
-        const data = fav.semester === 'spring26' ? sheetDataSpring : sheetData;
+        const data = getSheetData(fav.semester);
         const { hasConflicts } = refreshSchedule(fav.schedule, data);
 
         return {
@@ -551,7 +604,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
         };
       });
     });
-  }, [favoritesLoaded, favorites, sheetData, sheetDataSpring]);
+  }, [favoritesLoaded, favorites, sheetDataFall25, sheetDataSpring26, sheetDataFall26, sheetDataSpring27, getSheetData]);
 
 
   // Update favorites when sheet data changes
@@ -561,7 +614,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
     setFavorites((prevFavorites) => {
       let anyChanges = false;
       const newFavorites = prevFavorites.map((fav) => {
-        const data = fav.semester === 'spring26' ? sheetDataSpring : sheetData;
+        const data = getSheetData(fav.semester);
 
         // If data isn't loaded yet, don't touch the favorite
         if (!data || data.length === 0) return fav;
@@ -620,7 +673,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
 
       return anyChanges ? newFavorites : prevFavorites;
     });
-  }, [sheetData, sheetDataSpring, favoritesLoaded]);
+  }, [sheetDataFall25, sheetDataSpring26, sheetDataFall26, sheetDataSpring27, favoritesLoaded, getSheetData]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -630,15 +683,21 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
       ) {
         setShowPreferences(false);
       }
+      if (
+        semesterDropdownRef.current &&
+        !semesterDropdownRef.current.contains(event.target)
+      ) {
+        setShowSemesterDropdown(false);
+      }
     };
 
-    if (showPreferences) {
+    if (showPreferences || showSemesterDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
       };
     }
-  }, [showPreferences]);
+  }, [showPreferences, showSemesterDropdown]);
 
   // Lock background scroll when comparison modal is open
   useEffect(() => {
@@ -722,8 +781,8 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
 
     // Check for professor matches in BOTH semesters (to identify if it's a professor name)
     const professorMatchesActive = findProfessors(courseInput, activeSheetData);
-    const otherSheetData = semester === 'fall25' ? sheetDataSpring : sheetData;
-    const professorMatchesOther = findProfessors(courseInput, otherSheetData);
+    const otherSemesters = ['fall25', 'spring26', 'fall26', 'spring27'].filter(s => s !== semester);
+    const professorMatchesOther = otherSemesters.map(s => findProfessors(courseInput, getSheetData(s))).flat();
 
     // If it's a professor name in either semester
     if (professorMatchesActive.length > 0 || professorMatchesOther.length > 0) {
@@ -793,10 +852,9 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
         }
       } else {
         // Professors exist but not in current semester - save for when they switch
-        const semesterName = semester === 'fall25' ? "Fall '25" : "Spring '26";
-        const otherSemesterName = semester === 'fall25' ? "Spring '26" : "Fall '25";
+        const semesterName = formatSemesterName(semester);
         const firstMatch = professorMatchesOther[0];
-        setError(`${firstMatch}${professorMatchesOther.length > 1 ? ` and ${professorMatchesOther.length - 1} other(s)` : ''} teaches in ${otherSemesterName}, not ${semesterName}. Switch semesters to view.`);
+        setError(`${firstMatch}${professorMatchesOther.length > 1 ? ` and ${professorMatchesOther.length - 1} other(s)` : ''} teaches in a DIFFERENT semester, not ${semesterName}. Switch semesters to view.`);
         setSchedules([]);
         setProfessorMode(null);
         setPendingProfessor(firstMatch); // Save first match for semester switch
@@ -808,7 +866,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
     // Support multiple space-separated course codes
     const inputCodes = courseInput.trim().toUpperCase().split(/\s+/);
     const cleanedCodes = inputCodes
-      .map(c => c.replace(/[^A-Z0-9]/g, ''))
+      .map(c => c.replace(/[^A-Z0-9.]/g, ''))
       .filter(c => c && !selectedCourses.includes(c));
 
     if (cleanedCodes.length > 0) {
@@ -817,21 +875,24 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
       const notInSemester = []; // Exists in other semester
       const notExistAtAll = []; // Doesn't exist anywhere
 
-      const otherData = semester === 'fall25' ? sheetDataSpring : sheetData;
+      const otherSemesters = ['fall25', 'spring26', 'fall26', 'spring27'].filter(s => s !== semester);
 
       cleanedCodes.forEach(code => {
+        const baseCode = code.split('.')[0].toUpperCase().replace(/[^A-Z0-9]/g, '');
         const existsInCurrent = activeSheetData.some(row => {
-          const rowCode = ((row.subject || row.subj || '') + (row.cat || row.number || '')).toUpperCase();
-          return rowCode === code;
+          const rowCode = ((row.subject || row.subj || '') + (row.cat || row.number || '')).toUpperCase().replace(/[^A-Z0-9]/g, '');
+          return rowCode === baseCode;
         });
 
         if (existsInCurrent) {
           validCodes.push(code);
         } else {
           // Check if it exists in the other semester
-          const existsInOther = otherData.some(row => {
-            const rowCode = ((row.subject || row.subj || '') + (row.cat || row.number || '')).toUpperCase();
-            return rowCode === code;
+          const existsInOther = otherSemesters.some(s => {
+            return getSheetData(s).some(row => {
+              const rowCode = ((row.subject || row.subj || '') + (row.cat || row.number || '')).toUpperCase().replace(/[^A-Z0-9]/g, '');
+              return rowCode === baseCode;
+            });
           });
 
           if (existsInOther) {
@@ -857,7 +918,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
       if (notExistAtAll.length > 0) {
         setError("Uh... that course/professor doesn't exist sir/madam.");
       } else if (notInSemester.length > 0) {
-        const semesterName = semester === 'fall25' ? "Fall '25" : "Spring '26";
+        const semesterName = formatSemesterName(semester);
         if (notInSemester.length === 1) {
           setError(`${notInSemester[0]} not found in ${semesterName}.`);
         } else {
@@ -972,19 +1033,88 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
 
           <div className="utility-bar">
             <div className="util-left">
-              <div className="semester-toggle" style={{ marginBottom: 0 }}>
+              <div className="semester-dropdown-container" ref={semesterDropdownRef}>
                 <button
-                  className={semester === 'fall25' ? 'active' : ''}
-                  onClick={() => setSemester('fall25')}
+                  className="semester-dropdown-button"
+                  onClick={() => setShowSemesterDropdown(!showSemesterDropdown)}
                 >
-                  Fall '25
+                  <FaCalendarAlt style={{ marginRight: '8px', color: '#ffcf7a' }} /> Year & Semester {showSemesterDropdown ? <FaChevronUp style={{ marginLeft: '8px', fontSize: '12px' }} /> : <FaChevronDown style={{ marginLeft: '8px', fontSize: '12px' }} />}
                 </button>
-                <button
-                  className={semester === 'spring26' ? 'active' : ''}
-                  onClick={() => setSemester('spring26')}
-                >
-                  Spring '26
-                </button>
+                {showSemesterDropdown && (
+                  <div className="semester-dropdown-menu">
+                    <div className="academic-year-column">
+                      <div className="academic-year-title">2025 - 2026</div>
+                      <button
+                        className={`semester-option ${semester === 'fall25' ? 'active' : ''}`}
+                        onClick={() => { 
+                          setSemester('fall25'); 
+                          setShowSemesterDropdown(false);
+                        }}
+                      >
+                        <div className="semester-icon fall-icon">
+                          <FaLeaf style={{ color: '#ff9800' }} />
+                        </div>
+                        <div className="semester-text-wrapper">
+                          <div className="semester-name">Fall '25</div>
+                          <div className="semester-subname">Semester</div>
+                        </div>
+                        {semester === 'fall25' && <FaCheck className="check-icon" />}
+                      </button>
+                      <button
+                        className={`semester-option ${semester === 'spring26' ? 'active' : ''}`}
+                        onClick={() => { 
+                          setSemester('spring26'); 
+                          setShowSemesterDropdown(false);
+                        }}
+                      >
+                        <div className="semester-icon spring-icon">
+                          <FaSeedling style={{ color: '#4caf50' }} />
+                        </div>
+                        <div className="semester-text-wrapper">
+                          <div className="semester-name">Spring '26</div>
+                          <div className="semester-subname">Semester</div>
+                        </div>
+                        {semester === 'spring26' && <FaCheck className="check-icon" />}
+                      </button>
+                    </div>
+                    <div className="vertical-divider" />
+                    <div className="academic-year-column">
+                      <div className="academic-year-title">2026 - 2027</div>
+                      <button
+                        className={`semester-option ${semester === 'fall26' ? 'active' : ''}`}
+                        onClick={() => { 
+                          setSemester('fall26'); 
+                          setShowSemesterDropdown(false);
+                        }}
+                      >
+                        <div className="semester-icon fall-icon">
+                          <FaLeaf style={{ color: '#ff9800' }} />
+                        </div>
+                        <div className="semester-text-wrapper">
+                          <div className="semester-name">Fall '26</div>
+                          <div className="semester-subname">Semester</div>
+                        </div>
+                        {semester === 'fall26' && <FaCheck className="check-icon" />}
+                      </button>
+                      <button
+                        className={`semester-option ${semester === 'spring27' ? 'active' : ''}`}
+                        onClick={() => { 
+                          setSemester('spring27'); 
+                          setShowSemesterDropdown(false);
+                        }}
+                      >
+                        <div className="semester-icon spring-icon">
+                          <FaSeedling style={{ color: '#4caf50' }} />
+                        </div>
+                        <div className="semester-text-wrapper">
+                          <div className="semester-name">Spring '27</div>
+                          <div className="semester-subname">Semester</div>
+                        </div>
+                        {semester === 'spring27' && <FaCheck className="check-icon" />}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1118,12 +1248,12 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
 
         {selectedCourses.length > 0 && (() => {
           // Calculate total credits for selected courses
-          const data = semester === 'spring26' ? sheetDataSpring : sheetData;
+          const data = getSheetData(semester);
           const totalCredits = selectedCourses.reduce((sum, courseCode) => {
-            const normalizedCode = courseCode.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            const baseCode = courseCode.split('.')[0].toUpperCase().replace(/[^A-Z0-9]/g, '');
             const courseSections = data.filter(row => {
               const rowCode = ((row.subject || row.subj || '') + (row.cat || row.number || '')).toUpperCase().replace(/[^A-Z0-9]/g, '');
-              return rowCode === normalizedCode;
+              return rowCode === baseCode;
             });
 
             if (courseSections.length > 0) {
@@ -1344,7 +1474,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
                 onClick={() => {
                   if (entry.professorName) {
                     // Professor history entry
-                    const data = entry.semester === 'spring26' ? sheetDataSpring : sheetData;
+                    const data = getSheetData(entry.semester);
                     const profSchedule = data.filter(row => getInstructor(row) === entry.professorName);
                     if (profSchedule.length > 0) {
                       setSchedules([profSchedule]);
@@ -1376,7 +1506,7 @@ const ScheduleInterface = ({ sheetData, sheetDataSpring }) => {
                   )}
                 </div>
                 <div className="history-meta">
-                  {entry.semester === 'spring26' ? "Spring '26" : "Fall '25"} •{' '}
+                  {formatSemesterName(entry.semester)} •{' '}
                   {new Date(entry.timestamp).toLocaleDateString()} •{' '}
                   {entry.professorName ? 'Professor' : `${entry.scheduleCount} schedule${entry.scheduleCount !== 1 ? 's' : ''}`}
                   {entry.isPartial && ' (Partial)'}
