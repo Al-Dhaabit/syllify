@@ -1038,7 +1038,7 @@ const ScheduleInterface = ({ sheetDataFall25, sheetDataSpring26, sheetDataFall26
                   className="semester-dropdown-button"
                   onClick={() => setShowSemesterDropdown(!showSemesterDropdown)}
                 >
-                  <FaCalendarAlt style={{ marginRight: '8px', color: '#ffcf7a' }} /> Year & Semester {showSemesterDropdown ? <FaChevronUp style={{ marginLeft: '8px', fontSize: '12px' }} /> : <FaChevronDown style={{ marginLeft: '8px', fontSize: '12px' }} />}
+                  <FaCalendarAlt style={{ marginRight: '8px', color: '#ffcf7a' }} /> Semester {showSemesterDropdown ? <FaChevronUp style={{ marginLeft: '8px', fontSize: '12px' }} /> : <FaChevronDown style={{ marginLeft: '8px', fontSize: '12px' }} />}
                 </button>
                 {showSemesterDropdown && (
                   <div className="semester-dropdown-menu">
