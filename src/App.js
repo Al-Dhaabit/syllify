@@ -647,7 +647,11 @@ async function fetchGoogleSheet(docId, gid) {
     const objects = dataRows.map((row) => {
       const obj = {};
       headers.forEach((h, i) => {
-        obj[h] = row[i] != null ? String(row[i]).trim() : "";
+        // Only keep the FIRST occurrence of each header (e.g. columns M/N "Time Start"/"Time End"
+        // take priority over duplicate Ramadan timing columns Q/R)
+        if (!(h in obj)) {
+          obj[h] = row[i] != null ? String(row[i]).trim() : "";
+        }
       });
       return obj;
     });
