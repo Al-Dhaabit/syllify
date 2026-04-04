@@ -15,7 +15,6 @@ import {
   FaArrowRight,
   FaChalkboardTeacher,
   FaChevronDown,
-  FaChevronUp,
   FaCalendarAlt,
   FaLeaf,
   FaSeedling,
@@ -190,6 +189,7 @@ const ScheduleInterface = ({ sheetDataFall25, sheetDataSpring26, sheetDataFall26
 
   // Welcome Modal State
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [showSmilesModal, setShowSmilesModal] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 600);
 
   useEffect(() => {
@@ -208,6 +208,10 @@ const ScheduleInterface = ({ sheetDataFall25, sheetDataSpring26, sheetDataFall26
   const closeWelcomeModal = () => {
     localStorage.setItem('coursalog_schedule_welcome_seen', 'true');
     setShowWelcomeModal(false);
+  };
+
+  const closeSmilesModal = () => {
+    setShowSmilesModal(false);
   };
 
   // Pagination state
@@ -538,7 +542,7 @@ const ScheduleInterface = ({ sheetDataFall25, sheetDataSpring26, sheetDataFall26
         const missingText = coursesNotInNewSemester.length === 1
           ? `${coursesNotInNewSemester[0]} isn't available in ${semesterName}`
           : `${coursesNotInNewSemester.join(', ')} aren't available in ${semesterName}`;
-        setError(missingText + ". Switch back or remove unavailable courses.");
+        setError(missingText + ". Try switching up the semesters.");
         setSchedules([]);
         setCurrentPage(1);
         setIsPartial(false);
@@ -903,15 +907,24 @@ const ScheduleInterface = ({ sheetDataFall25, sheetDataSpring26, sheetDataFall26
         }
       });
 
-      // Add valid courses - only exit professor mode if we have valid courses
-      if (validCodes.length > 0) {
+      // Add valid courses AND courses that exist in other semesters
+      const coursesToAdd = [...validCodes, ...notInSemester];
+      if (coursesToAdd.length > 0) {
         // Exit professor mode and clear professor schedule when switching to course mode
         if (professorMode) {
           setProfessorMode(null);
           setSchedules([]);
         }
-        setSelectedCourses([...selectedCourses, ...validCodes]);
-        setError(null); // Clear any previous error when successfully adding courses
+        setSelectedCourses([...selectedCourses, ...coursesToAdd]);
+        
+        if (notInSemester.length > 0) {
+          setHasGenerated(true); // Flag to auto-generate once semester is toggled
+        }
+        
+        // Clear previous error only if perfect match
+        if (validCodes.length > 0 && notInSemester.length === 0 && notExistAtAll.length === 0) {
+          setError(null);
+        }
       }
 
       // Show appropriate error messages (but keep professor schedule if no valid courses)
@@ -955,6 +968,13 @@ const ScheduleInterface = ({ sheetDataFall25, sheetDataSpring26, sheetDataFall26
     setCurrentPage(1);
     setTbdSections(null); // Clear TBD sections
     setHasGenerated(true); // Mark that user has generated at least once
+
+    const today = new Date().toLocaleDateString();
+    const lastShown = localStorage.getItem('coursalog_last_smiles_date');
+    if (lastShown !== today) {
+      setShowSmilesModal(true);
+      localStorage.setItem('coursalog_last_smiles_date', today);
+    }
 
     setTimeout(() => {
       const result = generateSchedules(
@@ -1035,10 +1055,13 @@ const ScheduleInterface = ({ sheetDataFall25, sheetDataSpring26, sheetDataFall26
             <div className="util-left">
               <div className="semester-dropdown-container" ref={semesterDropdownRef}>
                 <button
-                  className="semester-dropdown-button"
+                  className={`recent-toggle${showSemesterDropdown ? ' open' : ''}`}
                   onClick={() => setShowSemesterDropdown(!showSemesterDropdown)}
+                  aria-expanded={showSemesterDropdown}
                 >
-                  <FaCalendarAlt style={{ marginRight: '8px', color: '#ffcf7a' }} /> Semester {showSemesterDropdown ? <FaChevronUp style={{ marginLeft: '8px', fontSize: '12px' }} /> : <FaChevronDown style={{ marginLeft: '8px', fontSize: '12px' }} />}
+                  <FaCalendarAlt className="recent-icon" />
+                  <span>Semester</span>
+                  <FaChevronDown className="recent-caret" />
                 </button>
                 {showSemesterDropdown && (
                   <div className="semester-dropdown-menu">
@@ -2818,6 +2841,24 @@ const ScheduleInterface = ({ sheetDataFall25, sheetDataSpring26, sheetDataFall26
             </ul>
             <button className="search-btn" onClick={closeWelcomeModal}>
               Got it!
+            </button>
+          </div>
+        </div>
+      )}
+      {showSmilesModal && (
+        <div className="coursalog-popup-overlay">
+          <div className="coursalog-popup">
+            <h2 style={{ marginBottom: '15px', textAlign: 'center' }}>I Really Want to Smile 😊</h2>
+            <div style={{ textAlign: 'center', marginBottom: '25px' }}>
+              <p style={{ margin: '0 0 20px 0', fontSize: '1.05rem', color: 'var(--text-primary)', lineHeight: '1.8' }}>
+                If Syllify helped you in creating your schedule, I’d really appreciate it if you could take a few seconds to make a quick LinkedIn post about how it helped, and tagging me <a href="https://linkedin.com/in/khaledmiari" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary-color, #007bff)', fontWeight: 'bold', textDecoration: 'none' }}>@Khaled Miari</a>!
+              </p>
+              <p style={{ margin: '0', fontSize: '0.95rem', color: 'var(--text-secondary, gray)', lineHeight: '1.5' }}>
+                <em>It genuinely makes me happy to see how it’s helping others!</em>
+              </p>
+            </div>
+            <button className="search-btn" onClick={closeSmilesModal} style={{ width: '100%' }}>
+              Will do!
             </button>
           </div>
         </div>
