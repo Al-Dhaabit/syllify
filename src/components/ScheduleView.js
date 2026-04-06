@@ -14,6 +14,8 @@ const COLORS = [
   { bg: '#118AB2', text: '#FFF' },
 ];
 
+
+
 const ScheduleView = ({
   schedule = [],
   scheduleIndex,
@@ -28,6 +30,16 @@ const ScheduleView = ({
   activePreferences = {},
   professorMode = null, // Professor name if in professor mode
 }) => {
+  const formatSemester = (sem) => {
+    switch (sem) {
+      case 'fall25': return "Fall '25";
+      case 'spring26': return "Spring '26";
+      case 'fall26': return "Fall '26";
+      case 'spring27': return "Spring '27";
+      default: return sem;
+    }
+  };
+
   const scheduleRef = useRef(null);
   const logoRef = useRef(null); // Ref to store preloaded logo
   const [showNameInput, setShowNameInput] = useState(false);
@@ -408,16 +420,7 @@ const ScheduleView = ({
 
     // Semester Badge
     if (semester) {
-      const formatSem = (sem) => {
-        switch(sem) {
-          case 'fall25': return "Fall '25";
-          case 'spring26': return "Spring '26";
-          case 'fall26': return "Fall '26";
-          case 'spring27': return "Spring '27";
-          default: return sem;
-        }
-      };
-      const semText = formatSem(semester);
+      const semText = formatSemester(semester);
 
       let startX = PADDING;
       if (showCredits) {
@@ -925,7 +928,7 @@ const ScheduleView = ({
             )}
             {semester && (
               <div className="semester-badge">
-                {semester === 'spring26' ? "Spring '26" : "Fall '25"}
+                {formatSemester(semester)}
               </div>
             )}
           </div>
@@ -1016,7 +1019,7 @@ const ScheduleView = ({
             )}
             {semester && (
               <div className="semester-badge">
-                {semester === 'spring26' ? "Spring '26" : "Fall '25"}
+                {formatSemester(semester)}
               </div>
             )}
           </div>
