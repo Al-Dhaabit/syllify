@@ -712,6 +712,7 @@ function App() {
     const saved = localStorage.getItem('coursalog_mode');
     return saved || 'search';
   }); // 'search' or 'schedule'
+  const [scheduleReminderToken, setScheduleReminderToken] = useState(0);
   const [query, setQuery] = useState(() => {
     try {
       const saved = localStorage.getItem('coursalog_search_state');
@@ -743,6 +744,15 @@ function App() {
       return saved ? (JSON.parse(saved).noResultsVariation || "") : "";
     } catch (e) { return ""; }
   });
+
+  const handleSelectSearchMode = () => {
+    setMode("search");
+  };
+
+  const handleSelectScheduleMode = () => {
+    setMode("schedule");
+    setScheduleReminderToken((prev) => prev + 1);
+  };
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [didYouMean, setDidYouMean] = useState(() => {
     try {
@@ -1566,13 +1576,13 @@ function App() {
             <div className="mode-toggle">
               <button
                 className={mode === "search" ? "active" : ""}
-                onClick={() => setMode("search")}
+                onClick={handleSelectSearchMode}
               >
                 <FaSearch /> Search
               </button>
               <button
                 className={mode === "schedule" ? "active" : ""}
-                onClick={() => setMode("schedule")}
+                onClick={handleSelectScheduleMode}
               >
                 <FaCalendarAlt /> Schedule
               </button>
@@ -1840,6 +1850,7 @@ function App() {
               sheetDataSpring26={sheetDataSpring26}
               sheetDataFall26={sheetDataFall26}
               sheetDataSpring27={sheetDataSpring27}
+              scheduleReminderToken={scheduleReminderToken}
             />
           )}
 

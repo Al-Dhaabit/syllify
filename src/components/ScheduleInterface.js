@@ -15,7 +15,6 @@ import {
   FaArrowRight,
   FaChalkboardTeacher,
   FaChevronDown,
-  FaCalendarAlt,
   FaLeaf,
   FaSeedling,
 } from 'react-icons/fa';
@@ -76,13 +75,24 @@ const formatSemesterName = (sem) => {
   }
 };
 
-const ScheduleInterface = ({ sheetDataFall25, sheetDataSpring26, sheetDataFall26, sheetDataSpring27 }) => {
+const DEFAULT_SEMESTER = 'fall26';
+
+const getSemesterMeta = (sem) => {
+  const isFall = sem === 'fall25' || sem === 'fall26';
+
+  return {
+    label: formatSemesterName(sem),
+    icon: isFall ? <FaLeaf /> : <FaSeedling />,
+  };
+};
+
+const ScheduleInterface = ({ sheetDataFall25, sheetDataSpring26, sheetDataFall26, sheetDataSpring27, scheduleReminderToken }) => {
   // Lazy initialize state from localStorage
   const [semester, setSemester] = useState(() => {
     try {
       const saved = localStorage.getItem('coursalog_state');
-      return saved ? (JSON.parse(saved).semester || 'fall25') : 'fall25';
-    } catch (e) { return 'fall25'; }
+      return saved ? (JSON.parse(saved).semester || DEFAULT_SEMESTER) : DEFAULT_SEMESTER;
+    } catch (e) { return DEFAULT_SEMESTER; }
   });
 
   const [courseInput, setCourseInput] = useState(() => {
@@ -110,6 +120,7 @@ const ScheduleInterface = ({ sheetDataFall25, sheetDataSpring26, sheetDataFall26
   const preferencesRef = useRef(null);
   const [showSemesterDropdown, setShowSemesterDropdown] = useState(false);
   const semesterDropdownRef = useRef(null);
+  const [showScheduleModeReminder, setShowScheduleModeReminder] = useState(false);
 
   const [professorMode, setProfessorMode] = useState(() => {
     try {
@@ -255,6 +266,7 @@ const ScheduleInterface = ({ sheetDataFall25, sheetDataSpring26, sheetDataFall26
   }, [sheetDataFall25, sheetDataSpring26, sheetDataFall26, sheetDataSpring27]);
 
   const activeSheetData = getSheetData(semester);
+  const currentSemesterMeta = getSemesterMeta(semester);
 
   // Calculate pagination values
   const totalPages = Math.ceil(schedules.length / schedulesPerPage);
@@ -703,6 +715,12 @@ const ScheduleInterface = ({ sheetDataFall25, sheetDataSpring26, sheetDataFall26
     }
   }, [showPreferences, showSemesterDropdown]);
 
+  useEffect(() => {
+    if (!scheduleReminderToken) return;
+
+    setShowScheduleModeReminder(true);
+  }, [scheduleReminderToken]);
+
   // Lock background scroll when comparison modal is open
   useEffect(() => {
     if (showComparisonFor) {
@@ -1054,13 +1072,35 @@ const ScheduleInterface = ({ sheetDataFall25, sheetDataSpring26, sheetDataFall26
           <div className="utility-bar">
             <div className="util-left">
               <div className="semester-dropdown-container" ref={semesterDropdownRef}>
+                {showScheduleModeReminder && (
+                  <div
+                    className="schedule-mode-reminder"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <button
+                      type="button"
+                      className="schedule-mode-reminder-close"
+                      onClick={() => setShowScheduleModeReminder(false)}
+                      aria-label="Dismiss semester reminder"
+                    >
+                      <FaTimes />
+                    </button>
+                    <div className="schedule-mode-reminder-card">
+                      <div className="schedule-mode-reminder-title">Reminder</div>
+                      <div className="schedule-mode-reminder-text">
+                        Viewing <strong>{currentSemesterMeta.label}</strong>. Switch if needed.
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <button
                   className={`recent-toggle${showSemesterDropdown ? ' open' : ''}`}
                   onClick={() => setShowSemesterDropdown(!showSemesterDropdown)}
                   aria-expanded={showSemesterDropdown}
                 >
-                  <FaCalendarAlt className="recent-icon" />
-                  <span>Semester</span>
+                  <span className="recent-icon">{currentSemesterMeta.icon}</span>
+                  <span className="recent-value">{currentSemesterMeta.label}</span>
                   <FaChevronDown className="recent-caret" />
                 </button>
                 {showSemesterDropdown && (
