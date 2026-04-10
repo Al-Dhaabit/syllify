@@ -162,8 +162,14 @@ function getSectionNum(row) {
 
 function isLabSection(row) {
     const sectionNum = getSectionNum(row);
-    // Check various possible column names for the course title
-    // Headers are normalized in App.js: toLowerCase, no spaces, alphanumeric only
+
+    // Primary: Section number is the definitive signal
+    // If section contains 'L' (e.g. "60L1"), it's a lab
+    if (sectionNum.includes('L')) return true;
+    // If section is purely numeric (e.g. "600"), it's NOT a lab
+    if (/^\d+$/.test(sectionNum)) return false;
+
+    // Fallback: Only check the title when section number is empty/ambiguous
     const title = (
         row.title ||
         row.coursetitle ||
@@ -173,7 +179,7 @@ function isLabSection(row) {
         row.description ||
         ''
     ).toString().toUpperCase();
-    return sectionNum.includes('L') || title.includes('LAB');
+    return title.includes('LAB');
 }
 
 // Check if a section has valid/confirmed time data (not TBD, empty, or invalid)
