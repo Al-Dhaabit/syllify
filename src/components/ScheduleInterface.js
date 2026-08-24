@@ -1836,7 +1836,7 @@ const ScheduleInterface = ({ sheetDataFall25, sheetDataSpring26, sheetDataFall26
         );
       })()}
 
-      <style jsx>{`
+      <style>{`
         .schedule-interface {
           width: 100%;
           color: #e9ebff;

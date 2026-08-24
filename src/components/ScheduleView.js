@@ -14,6 +14,19 @@ const COLORS = [
   { bg: '#118AB2', text: '#FFF' },
 ];
 
+const GURLS_COLORS = [
+  { bg: '#BE185D', text: '#FFF' },
+  { bg: '#DB2777', text: '#FFF' },
+  { bg: '#F472B6', text: '#3F0D2A' },
+  { bg: '#9D174D', text: '#FFF' },
+  { bg: '#FB7185', text: '#3F0D2A' },
+  { bg: '#C026D3', text: '#FFF' },
+  { bg: '#F9A8D4', text: '#3F0D2A' },
+  { bg: '#E11D48', text: '#FFF' },
+  { bg: '#FDA4AF', text: '#3F0D2A' },
+  { bg: '#A21CAF', text: '#FFF' },
+];
+
 
 
 const ScheduleView = ({
@@ -46,6 +59,7 @@ const ScheduleView = ({
   const [nameInput, setNameInput] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
   const [calendarSuccess, setCalendarSuccess] = useState(false);
+  const [exportAction, setExportAction] = useState(null);
   const hourHeight = 70;
 
   // Determine if this is a multi-professor search and extract the actual professor name
@@ -175,7 +189,7 @@ const ScheduleView = ({
     return sections;
   }, [schedule, highlightIds, courseColorMap, getMinutesFromMidnight]);
 
-  const drawScheduleToCanvas = () => {
+  const drawScheduleToCanvas = (exportTheme = 'default') => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
 
@@ -199,8 +213,15 @@ const ScheduleView = ({
     canvas.height = TOTAL_HEIGHT * SCALE;
     ctx.scale(SCALE, SCALE);
 
+    const isGurlsTheme = exportTheme === 'gurls';
+    const exportPalette = isGurlsTheme ? GURLS_COLORS : COLORS;
+    const exportColorMap = {};
+    Object.keys(courseColorMap).forEach((code, index) => {
+      exportColorMap[code] = exportPalette[index % exportPalette.length];
+    });
+
     // 1. Background
-    ctx.fillStyle = '#1a1b23'; // Dark theme background
+    ctx.fillStyle = isGurlsTheme ? '#2B1724' : '#1a1b23';
     ctx.fillRect(0, 0, TOTAL_WIDTH, TOTAL_HEIGHT);
 
     // Helper for rounded rects
@@ -247,7 +268,7 @@ const ScheduleView = ({
 
     // Day Headers
     const days = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'];
-    ctx.fillStyle = '#8b9bb4';
+    ctx.fillStyle = isGurlsTheme ? '#F9A8D4' : '#8b9bb4';
     days.forEach((day, i) => {
       const x = startX + (i * DAY_COL_WIDTH) + (DAY_COL_WIDTH / 2);
       ctx.fillText(day, x, PADDING + (HEADER_HEIGHT / 2));
@@ -255,8 +276,8 @@ const ScheduleView = ({
 
     // Time Column & Horizontal Lines
     ctx.font = '600 18px Inter, sans-serif'; // Larger Time Font
-    ctx.fillStyle = '#64748b';
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.fillStyle = isGurlsTheme ? '#D78BAD' : '#64748b';
+    ctx.strokeStyle = isGurlsTheme ? 'rgba(251, 207, 232, 0.14)' : 'rgba(255, 255, 255, 0.08)';
     ctx.lineWidth = 1;
 
     for (let i = 0; i <= numHours; i++) {
@@ -289,6 +310,7 @@ const ScheduleView = ({
     // 3. Draw Courses
     sectionsByDay.forEach((daySections, dayIndex) => {
       daySections.forEach(section => {
+        const exportColorStyle = exportColorMap[section.courseCode] || section.colorStyle;
         const startMin = getMinutesFromMidnight(section.timestart);
         const endMin = getMinutesFromMidnight(section.timeend);
 
@@ -315,7 +337,7 @@ const ScheduleView = ({
         ctx.shadowOffsetY = 4;
 
         // Card Background
-        ctx.fillStyle = section.colorStyle.bg;
+        ctx.fillStyle = exportColorStyle.bg;
         roundRect(x, y, w, h, 10); // Slightly larger radius
         ctx.fill();
 
@@ -325,7 +347,7 @@ const ScheduleView = ({
         ctx.shadowOffsetY = 0;
 
         // Content
-        ctx.fillStyle = section.colorStyle.text;
+        ctx.fillStyle = exportColorStyle.text;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
 
@@ -405,14 +427,14 @@ const ScheduleView = ({
       const textMetrics = ctx.measureText(badgeText);
       const badgeW = textMetrics.width + (badgePaddingX * 2);
 
-      ctx.fillStyle = 'rgba(140, 151, 247, 0.15)'; // Matches CSS
-      ctx.strokeStyle = 'rgba(140, 151, 247, 0.3)'; // Matches CSS
+      ctx.fillStyle = isGurlsTheme ? 'rgba(244, 114, 182, 0.15)' : 'rgba(140, 151, 247, 0.15)';
+      ctx.strokeStyle = isGurlsTheme ? 'rgba(244, 114, 182, 0.35)' : 'rgba(140, 151, 247, 0.3)';
       ctx.lineWidth = 2;
       roundRect(PADDING, footerY, badgeW, badgeHeight, badgeRadius);
       ctx.fill();
       ctx.stroke();
 
-      ctx.fillStyle = '#8c97f7'; // Matches CSS
+      ctx.fillStyle = isGurlsTheme ? '#F9A8D4' : '#8c97f7';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(badgeText, PADDING + (badgeW / 2), footerCenterY);
@@ -435,14 +457,14 @@ const ScheduleView = ({
       const textMetrics = ctx.measureText(semText);
       const badgeW = textMetrics.width + (badgePaddingX * 2);
 
-      ctx.fillStyle = 'rgba(255, 207, 122, 0.15)'; // Matches CSS
-      ctx.strokeStyle = 'rgba(255, 207, 122, 0.3)'; // Matches CSS
+      ctx.fillStyle = isGurlsTheme ? 'rgba(251, 113, 133, 0.15)' : 'rgba(255, 207, 122, 0.15)';
+      ctx.strokeStyle = isGurlsTheme ? 'rgba(251, 113, 133, 0.35)' : 'rgba(255, 207, 122, 0.3)';
       ctx.lineWidth = 2;
       roundRect(startX, footerY, badgeW, badgeHeight, badgeRadius);
       ctx.fill();
       ctx.stroke();
 
-      ctx.fillStyle = '#ffcf7a'; // Matches CSS
+      ctx.fillStyle = isGurlsTheme ? '#FDA4AF' : '#ffcf7a';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(semText, startX + (badgeW / 2), footerCenterY);
@@ -450,7 +472,7 @@ const ScheduleView = ({
 
     // Branding with Logo
     // CSS: font-size 13px, logo height 22px
-    const brandingText = 'Made using Syllify.info';
+    const brandingText = 'Made with Syllify';
     const brandingFontSize = '600 28px Inter, sans-serif'; // Matches 13px * 2.14
     ctx.font = brandingFontSize;
     const brandingMetrics = ctx.measureText(brandingText);
@@ -459,7 +481,7 @@ const ScheduleView = ({
     // Draw Text
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'; // Matches CSS color
+    ctx.fillStyle = isGurlsTheme ? 'rgba(252, 231, 243, 0.78)' : 'rgba(255, 255, 255, 0.7)';
     ctx.fillText(brandingText, brandingX, footerCenterY);
 
     // Draw Logo
@@ -485,8 +507,8 @@ const ScheduleView = ({
     return canvas;
   };
 
-  const handleExport = () => {
-    const canvas = drawScheduleToCanvas();
+  const handleExport = (exportTheme = 'default') => {
+    const canvas = drawScheduleToCanvas(exportTheme);
     if (!canvas) return;
 
     const link = document.createElement('a');
@@ -508,23 +530,23 @@ const ScheduleView = ({
     return new Blob([ab], { type: mimeString });
   };
 
-  const handleCopy = async () => {
+  const handleCopy = async (exportTheme = 'default') => {
     // Check for Secure Context (HTTPS or localhost)
     if (!window.isSecureContext) {
-      handleExport();
+      handleExport(exportTheme);
       alert('Copying to clipboard requires a secure connection (HTTPS). Image downloaded instead.');
       return;
     }
 
     if (!navigator.clipboard || !navigator.clipboard.write) {
-      handleExport();
+      handleExport(exportTheme);
       alert('Clipboard API not supported in this browser. Image downloaded instead.');
       return;
     }
 
     try {
       // Synchronous canvas generation
-      const canvas = drawScheduleToCanvas();
+      const canvas = drawScheduleToCanvas(exportTheme);
       if (!canvas) throw new Error('Failed to generate schedule image');
 
       // Synchronous Blob conversion
@@ -543,9 +565,20 @@ const ScheduleView = ({
 
     } catch (err) {
       console.error('Copy failed:', err);
-      handleExport();
+      handleExport(exportTheme);
       // More specific error for debugging
       alert(`Copy failed: ${err.message}. Image downloaded instead.`);
+    }
+  };
+
+  const handleExportStyleChoice = async (exportTheme) => {
+    const action = exportAction;
+    setExportAction(null);
+
+    if (action === 'copy') {
+      await handleCopy(exportTheme);
+    } else if (action === 'download') {
+      handleExport(exportTheme);
     }
   };
 
@@ -682,7 +715,7 @@ const ScheduleView = ({
         const event = {
           'summary': summary,
           'location': room,
-          'description': `Instructor: ${getInstructor(section)}\nSection: ${sectionNum}\n\nMade using Syllify.info`,
+          'description': `Instructor: ${getInstructor(section)}\nSection: ${sectionNum}\n\nMade with Syllify`,
           'colorId': colorMap[courseCode],
           'start': {
             'dateTime': startDate.toISOString(),
@@ -771,7 +804,7 @@ const ScheduleView = ({
   const Watermark = () => (
     <div className="watermark">
       <img src="/logo.png" alt="Syllify" className="watermark-logo" />
-      <span>Made using Syllify.info</span>
+      <span>Made with Syllify</span>
     </div>
   );
 
@@ -797,7 +830,7 @@ const ScheduleView = ({
               {isFavorited ? <FaHeart /> : <FaRegHeart />}
             </button>
             <button
-              onClick={handleCopy}
+              onClick={() => setExportAction('copy')}
               className={`copy-btn ${copySuccess ? 'success' : ''}`}
               title="Copy PNG to clipboard"
             >
@@ -826,7 +859,7 @@ const ScheduleView = ({
                 </>
               )}
             </button>
-            <button onClick={handleExport} className="export-btn">
+            <button onClick={() => setExportAction('download')} className="export-btn">
               <FaDownload /> <span className="export-text">Export PNG</span>
             </button>
           </div>
@@ -875,6 +908,55 @@ const ScheduleView = ({
               </button>
               <button onClick={handleSaveFavorite} className="save-btn">
                 Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {exportAction && (
+        <div className="export-style-overlay">
+          <div
+            className="export-style-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`export-style-title-${scheduleIndex}`}
+          >
+            <button
+              type="button"
+              className="export-style-close"
+              onClick={() => setExportAction(null)}
+              aria-label="Close style picker"
+            >
+              <FaTimes />
+            </button>
+            <h4 id={`export-style-title-${scheduleIndex}`}>Choose a style</h4>
+            <div className="export-style-options">
+              <button
+                type="button"
+                className="export-style-option"
+                onClick={() => handleExportStyleChoice('default')}
+              >
+                <span className="export-palette classic-palette" aria-hidden="true">
+                  <span /><span /><span />
+                </span>
+                <span className="export-style-copy">
+                  <strong>Classic</strong>
+                  <small>Original colors</small>
+                </span>
+              </button>
+              <button
+                type="button"
+                className="export-style-option gurls-option"
+                onClick={() => handleExportStyleChoice('gurls')}
+              >
+                <span className="export-palette gurls-palette" aria-hidden="true">
+                  <span /><span /><span />
+                </span>
+                <span className="export-style-copy">
+                  <strong>FOR THE GURLS 💅</strong>
+                  <small>Pink everything</small>
+                </span>
               </button>
             </div>
           </div>
@@ -1027,7 +1109,7 @@ const ScheduleView = ({
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .schedule-card {
           background: rgba(30, 30, 40, 0.5);
           border-radius: 12px;
@@ -1178,6 +1260,125 @@ const ScheduleView = ({
           border-color: rgba(6, 214, 160, 0.4);
           color: #06d6a0;
           animation: successPulse 0.4s ease;
+        }
+
+        .export-style-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 10000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          background: rgba(8, 10, 24, 0.76);
+          backdrop-filter: blur(6px);
+        }
+        .export-style-modal {
+          position: relative;
+          width: min(360px, calc(100vw - 40px));
+          padding: 20px;
+          border: 1px solid rgba(140, 151, 247, 0.35);
+          border-radius: 8px;
+          background: #181a36;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.48);
+        }
+        .export-style-modal h4 {
+          margin: 0 36px 16px 0;
+          color: #fff;
+          font-size: 1rem;
+          font-weight: 700;
+        }
+        .export-style-close {
+          position: absolute;
+          top: 14px;
+          right: 14px;
+          width: 30px;
+          height: 30px;
+          display: grid;
+          place-items: center;
+          padding: 0;
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          border-radius: 6px;
+          background: transparent;
+          color: #aeb5e9;
+          cursor: pointer;
+        }
+        .export-style-close:hover,
+        .export-style-close:focus-visible {
+          color: #fff;
+          border-color: rgba(255, 255, 255, 0.32);
+          outline: none;
+        }
+        .export-style-options {
+          display: grid;
+          gap: 10px;
+        }
+        .export-style-option {
+          width: 100%;
+          min-height: 64px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 10px 12px;
+          border: 1px solid rgba(140, 151, 247, 0.28);
+          border-radius: 8px;
+          background: rgba(140, 151, 247, 0.06);
+          color: #e9ebff;
+          text-align: left;
+          cursor: pointer;
+          transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+        }
+        .export-style-option:hover,
+        .export-style-option:focus-visible {
+          background: rgba(140, 151, 247, 0.12);
+          border-color: rgba(140, 151, 247, 0.5);
+          transform: translateY(-1px);
+          outline: none;
+        }
+        .export-style-option.gurls-option {
+          background: rgba(244, 114, 182, 0.08);
+          border-color: rgba(244, 114, 182, 0.32);
+        }
+        .export-style-option.gurls-option:hover,
+        .export-style-option.gurls-option:focus-visible {
+          background: rgba(244, 114, 182, 0.15);
+          border-color: rgba(244, 114, 182, 0.58);
+        }
+        .export-palette {
+          width: 54px;
+          height: 34px;
+          flex: 0 0 54px;
+          display: flex;
+          overflow: hidden;
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          border-radius: 6px;
+        }
+        .export-palette span {
+          flex: 1;
+        }
+        .classic-palette span:nth-child(1) { background: #4361EE; }
+        .classic-palette span:nth-child(2) { background: #ffcf7a; }
+        .classic-palette span:nth-child(3) { background: #2EC4B6; }
+        .gurls-palette span:nth-child(1) { background: #BE185D; }
+        .gurls-palette span:nth-child(2) { background: #F472B6; }
+        .gurls-palette span:nth-child(3) { background: #C026D3; }
+        .export-style-copy {
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+        .export-style-copy strong {
+          color: #fff;
+          font-size: 0.9rem;
+          font-weight: 800;
+        }
+        .gurls-option .export-style-copy strong {
+          color: #FBCFE8;
+        }
+        .export-style-copy small {
+          color: #aeb5e9;
+          font-size: 0.75rem;
         }
 
         /* Name input modal */
