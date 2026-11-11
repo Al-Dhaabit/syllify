@@ -1,70 +1,107 @@
-# Getting Started with Create React App
+# Syllify
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Syllify is a student-built course schedule planner for RIT Dubai, developed by Khaled Miari. It lets students enter course codes or instructor names, compare schedule combinations, adjust preferences, save schedules in their browser, and export them as images or Google Calendar events.
 
-## Available Scripts
+This repository is shared for technical review by Mr. Khalil and the IT team before wider student promotion. Sharing the code does not imply university approval. Syllify is an independent student project, not an official RIT system, and does not register students for classes.
 
-In the project directory, you can run:
+## Current scope
 
-### `npm start`
+- Schedule planning for Fall 2025, Spring 2026, Fall 2026, and Spring 2027.
+- Spring 2027 is the default semester; an existing browser session can restore a previously selected semester.
+- Course codes can be entered together, such as `CSEC472 CSEC380 ENGL212 MATH241 NSSA370`.
+- A specific section can be requested with a suffix, such as `CSEC472.601`.
+- Schedule preferences, history, favorites, comparison, image export, and Google Calendar export are available.
+- The separate course/topic search interface is temporarily disabled. Its implementation and static data remain in the repository.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Always verify the result against SIS, the university's published schedule, and academic advising before registration.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Run locally
 
-### `npm test`
+You need Node.js and npm. The current development environment uses Node.js **22.17.1** and npm **10.9.2**; this is not a tested compatibility range.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```bash
+git clone https://github.com/Al-Dhaabit/syllify.git
+cd syllify
+npm ci
+npm start
+```
 
-### `npm run build`
+Open [http://localhost:3000](http://localhost:3000). Course data requires an internet connection. The core planner does not require environment variables, a database, university credentials, or a backend service.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+The project uses React 19 and Create React App (`react-scripts` 5). The package name is still `coursenet` for historical reasons.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Build and tests
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash
+# Run the existing tests once
+npm test -- --watchAll=false --runInBand
 
-### `npm run eject`
+# Create a production build
+npm run build
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+The production output is written to `build/` and can be served by a static web host. The build command disables source maps.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Existing tests cover basic app rendering, selected scheduling regressions, and pink-theme image export. They are not a comprehensive correctness or security audit.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+For a reproducible review, record the commit being inspected:
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```bash
+git rev-parse HEAD
+```
 
-## Learn More
+Please include that commit, the semester, course codes, selected sections, and preferences when reporting a problem.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## Course data and external services
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+The app downloads published Google Sheets as CSV and parses them in the browser. Spreadsheet IDs, semester tab IDs, and parsing logic are defined in `src/App.js`.
 
-### Code Splitting
+| Academic year | Source | Semester tabs |
+| --- | --- | --- |
+| 2025–26 | [Published schedule spreadsheet](https://docs.google.com/spreadsheets/d/1UUjSCTgCK7yZLvlrwwoZ2341K9aCwiYMiR7Qs8fegRA/edit) | Fall: `672481223`; Spring: `1605186669` |
+| 2026–27 | [Published schedule spreadsheet](https://docs.google.com/spreadsheets/d/1bI-jXiF48S7j6YuvvNYRcpzh9e2MlZE-cICxu3ONZGg/edit) | Fall: `672481223`; Spring: `1605186669` |
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+The app reads these sheets; it does not modify them. Availability and accuracy depend on the published data and its format. Rows with missing or unconfirmed meeting times are excluded from scheduling and reported to the user.
 
-### Analyzing the Bundle Size
+Other external requests include Google Fonts, Google Calendar/Identity scripts, and a Giphy image used in an easter egg. The interface also contains links to terms, contact details, and optional support information. Hosting and third-party services may maintain their own request logs.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## Browser storage and Google Calendar
 
-### Making a Progressive Web App
+Schedule generation runs in the browser. This repository does not implement a user account system or an application backend for storing student schedules.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+- `localStorage` stores selected courses, semester, preferences, generated results, history, favorites, and acknowledgement/reminder flags. Legacy search storage also remains in the code.
+- An unload handler attempts to clear active planning/results state. History, favorites, and other persistent flags remain until removed by the app or browser. Unload handling is not guaranteed by browsers.
+- A service worker caches matching JavaScript, CSS, fonts, and legacy course-search data when requested. It no longer prefetches the disabled search data. Cached assets can affect which version is displayed during review; clear site data/service workers if necessary.
+- PNG export is generated in the browser.
+- Google API and Identity scripts load when a schedule view mounts. Calendar export requests Google authorization and sends event details to the user's primary Google Calendar. Its requested scope is `https://www.googleapis.com/auth/calendar.events`.
 
-### Advanced Configuration
+The Google OAuth client ID is configured in `src/utils/googleCalendar.js`. For an independent deployment, configure a Google Cloud OAuth web client and its authorized JavaScript origins, then update that setting. The client ID is a browser-visible identifier; no client secret is required by the implemented browser flow. Calendar export may be unavailable on origins that have not been authorized.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## Known scheduling issue under investigation
 
-### Deployment
+**Some courses with required lecture, lab, and recitation components can produce incomplete schedules. This is not fixed in the current code.**
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+A reported Fall 2026 example uses `ENGL211 PHYS212 CMPR271 MATH221 EEEE281`. For EEEE281, the current section-number heuristic can pair the wrong lecture with a lab/recitation group, and leftover lab/recitation groups can be offered without the required lecture. The scheduler also does not currently check conflicts between meeting rows inside a course bundle.
 
-### `npm run build` fails to minify
+A temporary, unpublished prototype tested explicit lecture-to-lab relationships for that Fall 2026 example. It removed incomplete EEEE281 options and internal overlaps in that dataset. The relationships still need confirmation against registration rules before a general fix is implemented. The prototype is not part of this repository, and its results do not establish correctness for other courses or semesters.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Review should include multi-component courses, split meeting rows sharing a Class #, specific-section requests, unconfirmed times, and partial schedules. A displayed schedule is a planning aid, not proof that all registration requirements are satisfied.
+
+## Code guide
+
+| File | Purpose |
+| --- | --- |
+| `src/App.js` | App shell, sheet loading/parsing, consent notice, and disabled search interface |
+| `src/components/ScheduleInterface.js` | Course selection, semester controls, preferences, history, and favorites |
+| `src/utils/scheduler.js` | Section grouping, course bundles, conflicts, schedule generation, and ranking |
+| `src/components/ScheduleView.js` | Timetable display, image export, and Calendar export flow |
+| `src/utils/googleCalendar.js` | Google scripts, OAuth setup, and Calendar event creation |
+| `public/sw.js` | Browser asset caching |
+| `src/utils/scheduler_*.test.js` | Existing scheduler regression cases |
+| `src/components/ScheduleView.test.js` | Export theme regression test |
+
+## Contact
+
+Khaled Miari — [km2495@rit.edu](mailto:km2495@rit.edu)
+
+For review findings, include reproduction steps and expected versus actual behavior. Please avoid putting credentials, access tokens, or private student information in public issues.
