@@ -12,7 +12,7 @@ const schedule = [
   },
 ];
 
-test('exports the schedule with the pink palette after choosing the gurls style', () => {
+test('exports the schedule with the pink palette after choosing the Academic Blush style', () => {
   const fillStyles = [];
   const context = {
     scale: jest.fn(),
@@ -49,10 +49,10 @@ test('exports the schedule with the pink palette after choosing the gurls style'
   fireEvent.click(screen.getByRole('button', { name: /export png/i }));
 
   expect(screen.getByRole('dialog', { name: /choose a style/i })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: /for the gurls/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /academic blush/i })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /classic/i })).toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole('button', { name: /for the gurls/i }));
+  fireEvent.click(screen.getByRole('button', { name: /academic blush/i }));
 
   expect(fillStyles).toContain('#2B1724');
   expect(fillStyles).toContain('#BE185D');

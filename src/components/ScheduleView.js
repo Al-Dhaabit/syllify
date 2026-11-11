@@ -954,8 +954,8 @@ const ScheduleView = ({
                   <span /><span /><span />
                 </span>
                 <span className="export-style-copy">
-                  <strong>FOR THE GURLS 💅</strong>
-                  <small>Pink everything</small>
+                  <strong>Academic Blush</strong>
+                  <small>At least the schedule looks good.</small>
                 </span>
               </button>
             </div>
