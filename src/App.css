@@ -2157,3 +2157,31 @@ main,
     vector-effect: non-scaling-stroke;
   }
 }
+
+/* Support details */
+.support-dialog {
+  color: #e9ebff;
+  background: #171a32;
+  border: 1px solid #555b91;
+  border-radius: 20px;
+  padding: 0;
+  width: min(440px, calc(100vw - 32px));
+  max-height: 85vh;
+  box-shadow: 0 20px 80px #0008;
+}
+.support-dialog::backdrop { background: #07091bcc; }
+.support-dialog-content { padding: 28px; }
+.support-dialog h2 { margin: 0 0 24px; color: #ffd27c; }
+.support-bank-details { margin: 0 0 24px; }
+.support-bank-details dt { color: #aeb4df; margin-top: 18px; font-size: 0.9em; }
+.support-bank-details dd { margin: 6px 0 0; line-height: 1.5; overflow-wrap: anywhere; user-select: all; }
+.support-dialog h2 { margin-bottom: 10px; }
+.support-intro { margin: 0 0 24px; color: #b8bddb; line-height: 1.6; }
+.support-bank-details { padding: 0; background: transparent; border: 0; }
+.support-bank-details .support-iban { font-family: monospace; font-size: 1.08em; color: #fff0d4; }
+@media (max-width: 600px) {
+  .schedule-interface .utility-bar { flex-wrap: wrap; gap: 8px; }
+  .schedule-interface .utility-bar .util-left { flex-wrap: wrap; gap: 8px; }
+}
+
+.support-dialog h2 { color: #ffd27c; }

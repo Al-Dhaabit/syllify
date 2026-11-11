@@ -17,6 +17,7 @@ import {
   FaChevronDown,
   FaLeaf,
   FaSeedling,
+  FaCoffee,
 } from 'react-icons/fa';
 
 // Returns array of all matching professors
@@ -199,6 +200,7 @@ const ScheduleInterface = ({ sheetDataFall25, sheetDataSpring26, sheetDataFall26
   const isInitialMount = useRef(true);
 
   // Welcome Modal State
+  const supportDialogRef = useRef(null);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [showSmilesModal, setShowSmilesModal] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 600);
@@ -1048,6 +1050,32 @@ const ScheduleInterface = ({ sheetDataFall25, sheetDataSpring26, sheetDataFall26
 
   return (
     <div className="schedule-interface">
+      <dialog
+        ref={supportDialogRef}
+        className="support-dialog"
+        aria-labelledby="support-title"
+        onClick={(event) => {
+          if (event.target === event.currentTarget) supportDialogRef.current.close();
+        }}
+      >
+        <div className="support-dialog-content">
+          <h2 id="support-title">I like money :D</h2>
+          <p className="support-intro">If you feel like sending a little something, <span style={{ whiteSpace: 'nowrap' }}>here’s where :)</span></p>
+          <dl className="support-bank-details">
+            <dt>IBAN</dt>
+            <dd className="support-iban">AE70 0355 6400 1168 2806 402</dd>
+            <dt>Account holder name</dt>
+            <dd>KHALED MIARI</dd>
+            <dt>Bank name</dt>
+            <dd>First Abu Dhabi Bank (FAB)</dd>
+            <dt>SWIFT</dt>
+            <dd>NBADAEAA</dd>
+          </dl>
+          <form method="dialog">
+            <button className="search-btn">Cool, thanks :)</button>
+          </form>
+        </div>
+      </dialog>
       <div className="controls-section">
         <div className="search-bar-block">
           <div className="search-bar-row">
@@ -1179,9 +1207,19 @@ const ScheduleInterface = ({ sheetDataFall25, sheetDataSpring26, sheetDataFall26
                   </div>
                 )}
               </div>
+              <button
+                type="button"
+                className="recent-toggle"
+                onClick={() => supportDialogRef.current.showModal()}
+                aria-label="cash — support Syllify"
+              >
+                <FaCoffee className="recent-icon" aria-hidden="true" />
+                <span>cash</span>
+              </button>
             </div>
 
             <div className="util-icons">
+
               <div className="preferences-container" ref={preferencesRef}>
                 <button
                   className={`preferences-toggle ${showPreferences || (preferences.noFridays || preferences.no9am || preferences.endBy) ? 'active' : ''}`}

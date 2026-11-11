@@ -18,6 +18,9 @@ import Papa from "papaparse";
 import ScheduleInterface from "./components/ScheduleInterface";
 import { levenshtein } from "./utils/stringUtils";
 
+// Temporarily disable course search; retain its implementation for later.
+const SEARCH_ENABLED = false;
+
 const ALL_TAGS = [
   // assessment / course structure
   "no final",
@@ -709,6 +712,7 @@ function getSectionsForCourse(course, sheetData) {
 
 function App() {
   const [mode, setMode] = useState(() => {
+    if (!SEARCH_ENABLED) return 'schedule';
     const saved = localStorage.getItem('coursalog_mode');
     return saved || 'search';
   }); // 'search' or 'schedule'
@@ -746,7 +750,7 @@ function App() {
   });
 
   const handleSelectSearchMode = () => {
-    setMode("search");
+    if (SEARCH_ENABLED) setMode("search");
   };
 
   const handleSelectScheduleMode = () => {
@@ -837,6 +841,7 @@ function App() {
         head.appendChild(dns);
       });
 
+      if (!SEARCH_ENABLED) return;
       const preloadCourses = document.createElement("link");
       preloadCourses.rel = "preload";
       preloadCourses.as = "fetch";
@@ -966,6 +971,7 @@ function App() {
   };
 
   useEffect(() => {
+    if (!SEARCH_ENABLED) return;
     // Small improvement: allow cache usage for courses.json
     fetch("/courses.json", { cache: "force-cache" })
       .then((res) => res.json())
@@ -1572,14 +1578,14 @@ function App() {
             Syllify
           </h1>
 
-          <div className="mode-controls">
+          {SEARCH_ENABLED && <div className="mode-controls">
             <div className="mode-toggle">
-              <button
+              {SEARCH_ENABLED && <button
                 className={mode === "search" ? "active" : ""}
                 onClick={handleSelectSearchMode}
               >
                 <FaSearch /> Search
-              </button>
+              </button>}
               <button
                 className={mode === "schedule" ? "active" : ""}
                 onClick={handleSelectScheduleMode}
@@ -1587,9 +1593,9 @@ function App() {
                 <FaCalendarAlt /> Schedule
               </button>
             </div>
-          </div>
+          </div>}
 
-          {mode === "search" ? (
+          {SEARCH_ENABLED && mode === "search" ? (
             <>
               <div className="search-bar-block">
                 <div className="search-bar-row">

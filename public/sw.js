@@ -5,7 +5,8 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
       cache.addAll([
-        "/courses.json", // warm cache for data used on first search
+        // Course search is temporarily disabled; do not prefetch its data.
+        // "/courses.json",
       ]).catch(() => {})
     )
   );
