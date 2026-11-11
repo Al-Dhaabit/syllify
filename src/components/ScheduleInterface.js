@@ -76,7 +76,7 @@ const formatSemesterName = (sem) => {
   }
 };
 
-const DEFAULT_SEMESTER = 'fall26';
+const DEFAULT_SEMESTER = 'spring27';
 
 const getSemesterMeta = (sem) => {
   const isFall = sem === 'fall25' || sem === 'fall26';
